@@ -1,0 +1,42 @@
+\documentclass[11pt]{article}
+\usepackage{fullpage}
+\usepackage{cite}
+\usepackage{amsfonts} 
+
+\title{Joint Learning of Probabilistic and Geometric Shaping \\ Literature Review}
+\author{David de Andres Hernandez \\ deandres.hernandez@tum.de}
+\begin{document}
+\maketitle
+\section{Introduction}
+\section{Disclosure of Studies}
+\subsection{Joint Learning of Geometric and Probabilistic Constellation Shaping ~\cite{9024567}}
+\subsection{Joint Learning of Probabilistic and Geometric Shaping for Coded Modulation Systems ~\cite{9348032}}
+\subsection{End-to-End Learning of Joint Geometric and Probabilistic Constellation Shaping ~\cite{https://doi.org/10.48550/arxiv.2112.05050}}
+This end-to-end approach proposes an auto-encoder based on the training of a cascade of neural networks. The chain consists of a mapper, channel model and demapper. Two possible demappers are suggested depending on whether symbol-metric- or bit-metric-decoding is desired.
+\subsubsection{Challenges}
+\begin{itemize}
+\item Sampling from the symbol distribution in a differentiable manner using the Gumbel-Softmax trick is numerically unstable
+\item Selecting and computing the right loss function to maximize the mutual information of the end-to-end channel
+\item Careful integer rounding is required.
+\end{itemize}
+\subsubsection{Loss function}
+The demapper shall estimate the transmitted symbol from the received. Depending on the demapping strategy, two loss functions are considered:
+\begin{enumerate}
+\item \textbf{Mutual information maximization for SMD}\\
+Estimates the posterior probability $Q_{\Theta, P_{M}, C_{M}}(X_{n}=c_{m}|Y_{n})$ and it is trained by minimizing the Cross Entropy (CE),\begin{equation}
+\mathbb{X}_{\Theta, P_{M}, C_{M}}(P,Q)= - \sum_{m=1}P(Y_{n}|c_{m})log(Q_{\Theta, P_{M}, C_{M}}(c_{m}|Y_{n}))
+\end{equation}
+\begin{equation}
+= \mathbb{E}_{P_{M},Y}[-log(Q_{\Theta, P_{M}, C_{M}}(c_{m}|Y_{n})]
+\end{equation}
+The end E2E system is trained to maximize
+\begin{equation}
+\mathbb{I}_{P_{M},Y} = \mathbb{H}(P_{M}) - \mathbb{X}_{\Theta, P_{M}, C_{M}}(P,Q)
+\end{equation}
+However, computing the derivatives of $\mathbb{I}_{P_{M},Y}$ via back-propagation would make a term from the derivatives disappear since the statistics of the input symbols vary. To compensate this,  this vanishing term is added to the term computed via back-propagation.
+\item \textbf{Bit-wise Mutual Information maximization for BMD}\\
+Each $c_{m}$ is mapped to a distinct bit-label using Gray bit-labelling.
+\end{enumerate}
+\bibliography{mybib}
+\bibliographystyle{plain}
+\end{document}
