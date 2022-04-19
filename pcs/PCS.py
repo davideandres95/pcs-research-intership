@@ -141,7 +141,8 @@ for (k, snr) in enumerate(hlp.db_to_lineal(chParam.SNR_db)):
         PCS = nn.functional.softmax(L_M, 1).detach().numpy()[0]
         constellation = hlp.get_norm_qam(chParam.M, 1, PCS)
         print(PCS)
-        print('Should always be one: ', np.sum(PCS))
+        print('Prob sum should always be one: ', np.sum(PCS))
+        print('Power should always be one:', hlp.calculate_avg_power(constellation, PCS))
         plot_2D_PDF(constellation, PCS)
     else:
         a_plot = np.arange(chParam.M)
