@@ -31,8 +31,8 @@ trainingParam = utils.AttrDict()
 trainingParam.nBatches      = 16
 trainingParam.batchSize     = 32*chParam.M
 trainingParam.learningRate  = 0.0005
-trainingParam.iterations    = 1001
-trainingParam.displayStep   = 100
+trainingParam.iterations    = 31
+trainingParam.displayStep   = 5
 
 def p_norm(p, x, fun=lambda x: torch.pow(torch.abs(x), 2)):
     return torch.sum(p * fun(x))
@@ -51,7 +51,7 @@ def r2c(x):
     return x.type(torch.complex64)
 
 def plot_2D_PDF(const, pmf, db):
-    s = pmf * 100 + 5
+    s = pmf * 200
     plt.figure(figsize=(3, 3))
     plt.scatter(const.real, const.imag, s, c="r")
     plt.title(f'SNR = {db} dB')
@@ -61,13 +61,14 @@ def plot_2D_PDF(const, pmf, db):
 def calculate_avg_power(x, p_s):
     return torch.sum(torch.pow(torch.abs(x), 2) * p_s)
 
-# Initialize network
 
 
 enc_inp = torch.tensor([[1]], dtype=torch.float)
 
 for (k, SNR_db) in enumerate(chParam.SNR_db):
     print(f'---SNR = {chParam.SNR_db[k]} dB---')
+
+    # Initialize network
     encoder = ae.Encoder(in_features=1, width=aeParam.nFeaturesEnc, out_features=chParam.M)
     decoder = ae.Decoder(in_features=2, width=aeParam.nFeaturesDec, out_features=chParam.M)
     CEloss = nn.CrossEntropyLoss()
@@ -93,12 +94,12 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
         should_always_be_one = p_norm(p_s, norm_constellation)
 
         # Channel
-        # noise_cpx = torch.complex(torch.randn(x.shape), torch.randn(x.shape))
-        noise_cpx = F.normalize(torch.complex(torch.randn(x.shape), torch.randn(x.shape)))
+        noise_cpx = torch.complex(torch.randn(x.shape), torch.randn(x.shape))
+        # noise_cpx = F.normalize(torch.complex(torch.randn(x.shape), torch.randn(x.shape)))
         #should_always_be_one = p_norm(torch.ones(noise_cpx.shape)/noise_cpx.shape[0], noise_cpx)
         sigma2 = torch.tensor(1) / hlp.dB2lin(SNR_db, 'dB')  # 1 corresponds to the Power
-        noise_snr = r2c(torch.sqrt(sigma2)) * noise_cpx
-        #noise_snr = r2c(torch.sqrt(sigma2)) * torch.rsqrt(torch.tensor(2)) * noise_cpx
+        # noise_snr = r2c(torch.sqrt(sigma2)) * noise_cpx
+        noise_snr = r2c(torch.sqrt(sigma2)) * torch.rsqrt(torch.tensor(2)) * noise_cpx
         # https://stats.stackexchange.com/questions/187491/why-standard-normal-samples-multiplied-by-sd-are-samples-from-a-normal-dist-with
 
         y = torch.add(x, noise_snr)
@@ -115,7 +116,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
         loss_hat = loss - entropy_S
 
         optimizer.zero_grad()
-        loss.backward()
+        loss_hat.backward()
         optimizer.step()
 
         # Printout and visualization
