@@ -108,15 +108,15 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
 
             # loss
             loss = CEloss(dec,  s.type(torch.float).detach())
-            entropy_S = p_norm(p_s, p_s, lambda x: torch.log2(x))
-            loss_hat = torch.add(loss, entropy_S)
+            entropy_S = -p_norm(p_s, p_s, lambda x: torch.log2(x))
+            loss_hat = torch.subtract(loss, entropy_S)
 
 
             optimizer.zero_grad()
             loss_hat.backward()
             optimizer.step()
 
-            gaussian_MI = hlp.gaussianMI(x, y, norm_constellation, chParam.M, dtype=torch.double).detach().numpy()
+            # gaussian_MI = hlp.gaussianMI(x, y, norm_constellation, chParam.M, dtype=torch.double).detach().numpy()
 
         # Printout and visualization
         if j % int(trainingParam.displayStep) == 0:

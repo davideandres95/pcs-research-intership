@@ -29,13 +29,10 @@ aeParam.nFeaturesDec  = 128
 # Training Parameters
 trainingParam = utils.AttrDict()
 trainingParam.nBatches      = 16
-trainingParam.batchSize     = 128*chParam.M
+trainingParam.batchSize     = 32*chParam.M
 trainingParam.learningRate  = 0.0001
 trainingParam.iterations    = 31
 trainingParam.displayStep   = 5
-
-def p_norm(p, x, fun=lambda x: torch.pow(torch.abs(x), 2)):
-    return torch.sum(p * fun(x))
 
 def sampler(P_M, B):
     samples = torch.empty(0)
@@ -45,13 +42,22 @@ def sampler(P_M, B):
     indexes = torch.randperm(samples.shape[0])
     return samples[indexes]
 
-def calculate_py_given_x(z, sig2):
-    return (1 / (torch.sqrt(2 * torch.pi * sig2))) * torch.exp(-torch.square(z) / (sig2 * torch.tensor(2)))
+# def calculate_py_given_x(z, sig2):
+#     return (1 / (torch.sqrt(2 * torch.pi * sig2))) * torch.exp(-torch.square(z) / (sig2 * torch.tensor(2)))
+def calculate_py_given_x(y, x, N0):
+    return 1 / (torch.pi * N0) * torch.exp(
+        (-torch.square(y.real - x.real) - torch.square(y.imag - x.imag)) / N0)
+
+# # CE loss function and correct with additional term
+# def loss_correction_factor(dec, zhat, sig2):
+#     q = torch.amax(dec, 1)  # Q(c_i|Y_n) <-- learned
+#     p = calculate_py_given_x(zhat, sig2) # P(Y_n|c_i)
+#     return torch.mean(p * torch.log2(q))
 
 # CE loss function and correct with additional term
-def loss_correction_factor(dec, zhat, sig2):
+def loss_correction_factor(dec, y, x):
     q = torch.amax(dec, 1)  # Q(c_i|Y_n) <-- learned
-    p = torch.prod(calculate_py_given_x(zhat, sig2), 1)  # P(Y_n|c_i)
+    p = calculate_py_given_x(y, x, N0) # P(Y_n|c_i)
     return torch.mean(p * torch.log2(q))
 
 def r2c(x):
@@ -79,6 +85,9 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     # Optimizer
     optimizer = optim.Adam(list(encoder.parameters()) + list(decoder.parameters()), lr=trainingParam.learningRate)
 
+    # AWGN Capacity
+    AWGN_Cap = np.log2(1 + hlp.dB2lin(SNR_db, 'dB'))
+
     # Training loop
     for j in range(trainingParam.iterations):
         for i in range(trainingParam.nBatches):
@@ -95,10 +104,10 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             # normalization & Modulation
             constellation = tx.qammod(chParam.M)
             constellation_t = torch.tensor(constellation, dtype=torch.cfloat)
-            norm_factor = torch.rsqrt(p_norm(P_M, constellation_t))
+            norm_factor = torch.rsqrt(utils.p_norm(P_M, constellation_t))
             norm_constellation = torch.mul(constellation_t, r2c(norm_factor))
             x = torch.matmul(r2c(onehot), torch.transpose(input=norm_constellation, dim0=0, dim1=1))
-            should_always_be_one = p_norm(P_M, norm_constellation)
+            should_always_be_one = utils.p_norm(P_M, norm_constellation)
 
             # Channel
             noise_cpx = torch.complex(torch.randn(x.shape), torch.randn(x.shape))
@@ -114,17 +123,21 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
 
 
             # loss
-            zhat = (y_vec - hlp.complex2real(torch.squeeze(x)))
+            # zhat = (y_vec - hlp.complex2real(torch.squeeze(x)))
+            N0 = torch.mean(torch.square(torch.abs(x - y)))
             loss = CEloss(dec, onehot.type(torch.float))
-            loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), zhat, sigma2)
+            #loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), zhat, sigma2)
+            loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), x, y)
 
             optimizer.zero_grad()
             loss_hat.backward()
             optimizer.step()
 
+            MI = utils.gaussianMI_Non_Uniform(x, y, norm_constellation, chParam.M, P_M, dtype=torch.double).detach().numpy()
+
         # Printout and visualization
         if j % int(trainingParam.displayStep) == 0:
-            print(f'epoch {j}: Loss = {loss_hat.detach().numpy() / np.log(2) :.4f} - always 1: {should_always_be_one :.2}')
+            print(f'epoch {j}: Loss = {loss_hat.detach().numpy() / np.log(2) :.4f} - always 1: {should_always_be_one :.2} - MI: {MI :.4f} - Cap.: {AWGN_Cap:.4f}')
         if loss < -10:
             break
 
@@ -133,8 +146,8 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     p_s = p_s_t.detach().numpy()[0]
     constellation = tx.qammod(chParam.M)
     constellation_t = torch.tensor(constellation, dtype=torch.cfloat)
-    norm_factor = torch.rsqrt(p_norm(p_s_t, constellation_t))
+    norm_factor = torch.rsqrt(utils.p_norm(p_s_t, constellation_t))
     norm_constellation = r2c(norm_factor) * constellation_t
     #print(p_s)
-    print('Power should always be one:', p_norm(p_s_t, norm_constellation))
+    print('Power should always be one:', utils.p_norm(p_s_t, norm_constellation))
     plot_2D_PDF(constellation, p_s, SNR_db)
