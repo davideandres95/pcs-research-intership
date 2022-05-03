@@ -1,4 +1,5 @@
-import sys
+# -*- coding: utf-8 -*-:
+
 import matplotlib.pyplot as plt
 import torch
 import torch.distributions as torch_d
@@ -42,27 +43,24 @@ def sampler(P_M, B):
     indexes = torch.randperm(samples.shape[0])
     return samples[indexes]
 
-# def calculate_py_given_x(z, sig2):
-#     return (1 / (torch.sqrt(2 * torch.pi * sig2))) * torch.exp(-torch.square(z) / (sig2 * torch.tensor(2)))
-def calculate_py_given_x(y, x, N0):
-    return 1 / (torch.pi * N0) * torch.exp(
-        (-torch.square(y.real - x.real) - torch.square(y.imag - x.imag)) / N0)
+def calculate_py_given_x(z, sig2):
+     return (1 / (torch.sqrt(2 * torch.pi * sig2))) * torch.exp(-torch.square(z) / (sig2 * torch.tensor(2)))
 
-# # CE loss function and correct with additional term
-# def loss_correction_factor(dec, zhat, sig2):
-#     q = torch.amax(dec, 1)  # Q(c_i|Y_n) <-- learned
-#     p = calculate_py_given_x(zhat, sig2) # P(Y_n|c_i)
-#     return torch.mean(p * torch.log2(q))
-
-# CE loss function and correct with additional term
-def loss_correction_factor(dec, y, x):
-    q = torch.amax(dec, 1)  # Q(c_i|Y_n) <-- learned
-    p = calculate_py_given_x(y, x, N0) # P(Y_n|c_i)
-    return torch.mean(p * torch.log2(q))
+def loss_correction_factor(dec, zhat, sig2):
+     q = torch.amax(dec, 1)  # Q(c_i|Y_n) <-- learned
+     p = torch.prod(calculate_py_given_x(zhat, sig2/torch.tensor(2)), 1) # P(Y_n|c_i)
+     return torch.mean(p * torch.log2(q))
 
 def r2c(x):
     #a = torch.tensor(x, dtype=torch.double)
     return x.type(torch.complex64)
+
+def generate_complex_AWGN(x_shape, SNR_db):
+    noise_cpx = torch.complex(torch.randn(x_shape), torch.randn(x_shape))
+    sigma2 = torch.tensor(1) / hlp.dB2lin(SNR_db, 'dB')  # 1 corresponds to the Power
+    noise = r2c(torch.sqrt(sigma2)) * torch.rsqrt(torch.tensor(2)) * noise_cpx
+    noise_power = torch.mean(torch.square(torch.abs(noise)))
+    return noise, sigma2, noise_power
 
 def plot_2D_PDF(const, pmf, db):
     s = pmf * 400
@@ -70,7 +68,6 @@ def plot_2D_PDF(const, pmf, db):
     plt.scatter(const.real, const.imag, s, c="r")
     plt.title(f'SNR = {db} dB')
     plt.grid()
-    plt.show()
 
 enc_inp = torch.tensor([[1]], dtype=torch.float)
 
@@ -96,9 +93,9 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             P_M = F.softmax(l_M, dim=1)
 
             # Sample indexes
-            indices = sampler(torch.squeeze(P_M), trainingParam.batchSize)  # labels
+            indices = sampler(torch.squeeze(P_M), trainingParam.batchSize).type(torch.LongTensor)  # labels
             # get onehot from sampled indices
-            onehot = F.one_hot(indices.type(torch.LongTensor), 64)
+            onehot = F.one_hot(indices, 64)
 
 
             # normalization & Modulation
@@ -110,12 +107,12 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             should_always_be_one = utils.p_norm(P_M, norm_constellation)
 
             # Channel
-            noise_cpx = torch.complex(torch.randn(x.shape), torch.randn(x.shape))
-            sigma2 = torch.tensor(1) / hlp.dB2lin(SNR_db, 'dB')  # 1 corresponds to the Power
-            noise_snr = r2c(torch.sqrt(sigma2)) * torch.rsqrt(torch.tensor(2)) * noise_cpx
-            # https://stats.stackexchange.com/questions/187491/why-standard-normal-samples-multiplied-by-sd-are-samples-from-a-normal-dist-with
+            noise_snr, sigma2, noise_power = generate_complex_AWGN(x.shape, SNR_db)
 
             y = torch.add(x, noise_snr)
+
+            breakpoint()
+            y_power = utils.p_norm(P_M, torch.add(norm_constellation, generate_complex_AWGN(norm_constellation.shape, SNR_db)[0] ))
 
             # demodulator
             y_vec = hlp.complex2real(torch.squeeze(y))
@@ -123,17 +120,17 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
 
 
             # loss
-            # zhat = (y_vec - hlp.complex2real(torch.squeeze(x)))
-            N0 = torch.mean(torch.square(torch.abs(x - y)))
+            zhat = (y_vec - hlp.complex2real(torch.squeeze(x)))
+            #N0 = torch.mean(torch.square(torch.abs(x - y)))
             loss = CEloss(dec, onehot.type(torch.float))
-            #loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), zhat, sigma2)
-            loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), x, y)
+            loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), zhat, sigma2)
+            #loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), x, y)
 
             optimizer.zero_grad()
             loss_hat.backward()
             optimizer.step()
 
-            MI = utils.gaussianMI_Non_Uniform(x, y, norm_constellation, chParam.M, P_M, dtype=torch.double).detach().numpy()
+            MI = utils.gaussianMI_Non_Uniform(indices, x, y, norm_constellation, chParam.M, P_M, dtype=torch.double).detach().numpy()
 
         # Printout and visualization
         if j % int(trainingParam.displayStep) == 0:
@@ -151,3 +148,6 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     #print(p_s)
     print('Power should always be one:', utils.p_norm(p_s_t, norm_constellation))
     plot_2D_PDF(constellation, p_s, SNR_db)
+
+
+plt.show()
