@@ -51,14 +51,10 @@ def loss_correction_factor(dec, zhat, sig2):
      p = torch.prod(calculate_py_given_x(zhat, sig2/torch.tensor(2)), 1) # P(Y_n|c_i)
      return torch.mean(p * torch.log2(q))
 
-def r2c(x):
-    #a = torch.tensor(x, dtype=torch.double)
-    return x.type(torch.complex64)
-
 def generate_complex_AWGN(x_shape, SNR_db):
     noise_cpx = torch.complex(torch.randn(x_shape), torch.randn(x_shape))
     sigma2 = torch.tensor(1) / hlp.dB2lin(SNR_db, 'dB')  # 1 corresponds to the Power
-    noise = r2c(torch.sqrt(sigma2)) * torch.rsqrt(torch.tensor(2)) * noise_cpx
+    noise = torch.sqrt(sigma2) * torch.rsqrt(torch.tensor(2)) * noise_cpx
     noise_power = torch.mean(torch.square(torch.abs(noise)))
     return noise, sigma2, noise_power
 
@@ -102,8 +98,8 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             constellation = tx.qammod(chParam.M)
             constellation_t = torch.tensor(constellation, dtype=torch.cfloat)
             norm_factor = torch.rsqrt(utils.p_norm(P_M, constellation_t))
-            norm_constellation = torch.mul(constellation_t, r2c(norm_factor))
-            x = torch.matmul(r2c(onehot), torch.transpose(input=norm_constellation, dim0=0, dim1=1))
+            norm_constellation = torch.mul(constellation_t, norm_factor)
+            x = torch.matmul(onehot.type(torch.complex64), torch.transpose(input=norm_constellation, dim0=0, dim1=1))
             should_always_be_one = utils.p_norm(P_M, norm_constellation)
 
             # Channel
@@ -111,13 +107,11 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
 
             y = torch.add(x, noise_snr)
 
-            breakpoint()
             y_power = utils.p_norm(P_M, torch.add(norm_constellation, generate_complex_AWGN(norm_constellation.shape, SNR_db)[0] ))
 
             # demodulator
             y_vec = hlp.complex2real(torch.squeeze(y))
             dec = decoder(y_vec)
-
 
             # loss
             zhat = (y_vec - hlp.complex2real(torch.squeeze(x)))
@@ -144,7 +138,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     constellation = tx.qammod(chParam.M)
     constellation_t = torch.tensor(constellation, dtype=torch.cfloat)
     norm_factor = torch.rsqrt(utils.p_norm(p_s_t, constellation_t))
-    norm_constellation = r2c(norm_factor) * constellation_t
+    norm_constellation = norm_factor * constellation_t
     #print(p_s)
     print('Power should always be one:', utils.p_norm(p_s_t, norm_constellation))
     plot_2D_PDF(constellation, p_s, SNR_db)
