@@ -16,8 +16,7 @@ import autoencoder as ae
 # Channel Parameters
 chParam = utils.AttrDict()
 chParam.M = 64
-# chParam.SNR_db = [5, 12, 18, 30]
-chParam.SNR_db = [0, 5, 7, 18, 30]
+chParam.SNR_db = [0, 3, 5, 7, 12, 30]
 
 # Auto-Encoder Parameters
 aeParam = utils.AttrDict()
@@ -29,7 +28,7 @@ aeParam.nFeaturesDec  = 128
 
 # Training Parameters
 trainingParam = utils.AttrDict()
-trainingParam.nBatches      = 16
+trainingParam.nBatches      = 4
 trainingParam.batchSize     = 32*chParam.M
 trainingParam.learningRate  = 0.0001
 trainingParam.iterations    = 31
@@ -58,14 +57,19 @@ def generate_complex_AWGN(x_shape, SNR_db):
     noise_power = torch.mean(torch.square(torch.abs(noise)))
     return noise, sigma2, noise_power
 
-def plot_2D_PDF(const, pmf, db):
+def plot_2D_PDF(axs, const, pmf, db, k):
+    i = k // 2
+    j = k % 2
     s = pmf * 400
-    plt.figure(figsize=(5, 5))
-    plt.scatter(const.real, const.imag, s, c="r")
-    plt.title(f'SNR = {db} dB')
-    plt.grid()
+    axs[i, j].scatter(const.real, const.imag, s, c="r")
+    axs[i, j].title.set_text(f'SNR = {db} dB')
+    axs[i, j].grid()
 
+# Constant input
 enc_inp = torch.tensor([[1]], dtype=torch.float)
+
+fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+
 
 for (k, SNR_db) in enumerate(chParam.SNR_db):
     print(f'---SNR = {chParam.SNR_db[k]} dB---')
@@ -141,7 +145,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     norm_constellation = norm_factor * constellation_t
     #print(p_s)
     print('Power should always be one:', utils.p_norm(p_s_t, norm_constellation))
-    plot_2D_PDF(constellation, p_s, SNR_db)
+    plot_2D_PDF(axs, constellation, p_s, SNR_db, k)
 
 
-plt.show()
+fig.show()
