@@ -4,11 +4,8 @@ import torch
 
 def complex2real(cplx):
     real = cplx.real
-    #real = torch.flatten(cplx.real)
     imag = cplx.imag
-    #imag = torch.flatten(cplx.imag)
     result = torch.transpose(torch.stack((real, imag)), 0, 1)
-    #result = torch.stack((real, imag))
     return result
 
 def real2complex(real):

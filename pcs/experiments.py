@@ -8,6 +8,19 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import torch.distributions as torch_d
 
+# Channel Parameters
+chParam = utils.AttrDict()
+chParam.M = 64
+chParam.SNR_db = [0, 3, 5, 7, 12, 30]
+
+# Training Parameters
+trainingParam = utils.AttrDict()
+trainingParam.nBatches      = 32
+trainingParam.batchSize     = 2000
+trainingParam.learningRate  = 1e-4
+trainingParam.iterations    = 31
+trainingParam.displayStep   = 5
+
 def r2c(x):
     #a = torch.tensor(x, dtype=torch.double)
     return x.type(torch.complex64)
@@ -65,7 +78,8 @@ def gaussianMI(x, y, constellation, M, dtype=torch.double):
 
     return MI
 
-def gaussianMI_Non_Uniform(x, y, constellation, M, P_X, N0, dtype=torch.double):
+
+def gaussianMI_Non_Uniform(idx, x, y, constellation, M, P_X, dtype=torch.double):
     """
         Computes mutual information with Gaussian auxiliary channel assumption and constellation with given porbability distribution
         x: (1, N), N normalized complex samples at the transmitter, where N is the batchSize/sampleSize
@@ -79,6 +93,8 @@ def gaussianMI_Non_Uniform(x, y, constellation, M, P_X, N0, dtype=torch.double):
         y = torch.unsqueeze(y, dim=0)
     if len(x.shape) == 1:
         x = torch.unsqueeze(x, dim=0)
+    if len(idx.shape) == 1:
+        idx = torch.unsqueeze(idx, dim=0)
     if len(P_X.shape) == 1:
         P_X = torch.unsqueeze(P_X, dim=0)
     if y.shape[0] != 1:
@@ -89,6 +105,8 @@ def gaussianMI_Non_Uniform(x, y, constellation, M, P_X, N0, dtype=torch.double):
         constellation = torch.transpose(constellation, dim0=0, dim1=1)
     if P_X.shape[0] == 1:
         P_X = torch.transpose(P_X, dim0=0, dim1=1)
+    if idx.shape[0] == 1:
+        idx = torch.transpose(idx, dim0=0, dim1=1)
 
     N = torch.tensor(list(x.shape)[1], dtype=dtype)
 
@@ -108,13 +126,14 @@ def gaussianMI_Non_Uniform(x, y, constellation, M, P_X, N0, dtype=torch.double):
         qY.append(temp)
     qY = torch.sum(torch.cat(qY, dim=0), dim=0)
 
-    qXonY = P_X * torch.max(qYonX, REALMIN) / torch.max(qY, REALMIN)
+    qXonY = P_X[idx] * torch.max(qYonX, REALMIN) / torch.max(qY, REALMIN)
 
     HX =  -p_norm(P_X, P_X, lambda x: torch.log2(x))
 
     MI = HX + torch.mean(torch.log2(qXonY))
 
     return MI
+
 
 
 def calculate_py_given_x(x, y, sigma2):
@@ -129,40 +148,50 @@ def calculate_px_given_y(x, y, sigma2, constellation):
     return pxy
 
 
+def test_MI_calculation():
+    SNRdBs = np.arange(0,30,1)
+    mi = np.zeros(SNRdBs.size)
+    for idx,snr in enumerate(hlp.dB2lin(SNRdBs, 'dB')):
+        indexes = torch.tensor(np.random.randint(0, chParam.M, size=(1000)), dtype=torch.int64)
+        s = F.one_hot(indexes)
+        p_s = torch.tensor(np.ones(chParam.M) * 1 / chParam.M)
 
+        constellation = tx.qammod(chParam.M)
+        constellation_t = torch.tensor(constellation, dtype=torch.cfloat)
+        norm_factor = torch.rsqrt(p_norm(p_s, constellation_t))
+        norm_constellation = torch.mul(constellation_t, r2c(norm_factor))
+        x = torch.matmul(r2c(s), torch.transpose(input=norm_constellation, dim0=0, dim1=1))
+        should_always_be_one = p_norm(p_s, norm_constellation)
 
+        # Channel
+        noise_cpx = torch.complex(torch.randn(x.shape), torch.randn(x.shape))
+        sigma2 = torch.tensor(1) / snr  # 1 corresponds to the Power
+        noise_snr = r2c(torch.sqrt(sigma2)) * torch.rsqrt(torch.tensor(2)) * noise_cpx
+        # https://stats.stackexchange.com/questions/187491/why-standard-normal-samples-multiplied-by-sd-are-samples-from-a-normal-dist-with
 
-SNRdBs = np.arange(0,30,1)
-mi = np.zeros(SNRdBs.size)
-for idx,snr in enumerate(hlp.dB2lin(SNRdBs, 'dB')):
+        y = torch.add(x, noise_snr)
 
-    s = F.one_hot(torch.tensor(np.random.randint(0, 64, size=(1000)), dtype=torch.int64))
-    p_s = torch.tensor(np.ones(64) * 1 / 64)
+        mi[idx] = gaussianMI_Non_Uniform(indexes, x, y, norm_constellation, 64, p_s, dtype=torch.double).detach().numpy()
+        print("MI: ", mi[idx], "AWGN Cap: ", np.log2(1 + snr))
 
-    constellation = tx.qammod(64)
-    constellation_t = torch.tensor(constellation, dtype=torch.cfloat)
-    norm_factor = torch.rsqrt(p_norm(p_s, constellation_t))
-    norm_constellation = torch.mul(constellation_t, r2c(norm_factor))
-    x = torch.matmul(r2c(s), torch.transpose(input=norm_constellation, dim0=0, dim1=1))
-    should_always_be_one = p_norm(p_s, norm_constellation)
+    plt.plot(SNRdBs, mi, label='MI (analytical)')
+    plt.plot(SNRdBs, np.log2(1+ hlp.dB2lin(SNRdBs, 'dB')), label='AWGN Capacity')
+    plt.xlabel('SNR [dB]')
+    plt.ylabel('Mutual Information')
+    plt.legend()
+    plt.grid()
 
-    # Channel
-    noise_cpx = torch.complex(torch.randn(x.shape), torch.randn(x.shape))
-    sigma2 = torch.tensor(1) / snr  # 1 corresponds to the Power
-    noise_snr = r2c(torch.sqrt(sigma2)) * torch.rsqrt(torch.tensor(2)) * noise_cpx
-    # https://stats.stackexchange.com/questions/187491/why-standard-normal-samples-multiplied-by-sd-are-samples-from-a-normal-dist-with
+    plt.figtext(0.25, 0.5, trainingParam, horizontalalignment='center',
+               fontsize=9, multialignment='left',
+               bbox=dict(boxstyle="round", facecolor='#D8D8D8',
+               ec="0.5", pad=0.5, alpha=1),)
+    plt.show()
 
-    y = torch.add(x, noise_snr)
+def test_c2r():
+    real = torch.rand(10, requires_grad=True)
+    im = torch.rand(10, requires_grad=True)
+    data = torch.complex(real, im)
+    data = hlp.complex2real(data)
+    data.mean().backward()
 
-    mi[idx] = gaussianMI_Non_Uniform(x, y, norm_constellation, 64, p_s, dtype=torch.double).detach().numpy()
-    print("MI: ", mi[idx], "AWGN Cap: ", np.log2(1 + snr))
-
-plt.plot(SNRdBs, mi, label='MI (analytical)')
-plt.plot(SNRdBs, np.log2(1+ hlp.dB2lin(SNRdBs, 'dB')), label='AWGN Capacity')
-plt.xlabel('SNR [dB]')
-plt.ylabel('Mutual Information')
-plt.legend()
-plt.grid()
-plt.show()
-
-
+test_MI_calculation()

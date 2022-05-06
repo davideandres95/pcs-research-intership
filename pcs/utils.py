@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from scipy.optimize import fminbound
+import helper as hlp
 
 
 class AttrDict(dict):
@@ -14,7 +15,7 @@ class AttrDict(dict):
     def __repr__(self):
         s = ''
         for key in self.__dict__.keys():
-            s = s + key + ':' + 1 * '\t' + str(self.__dict__[key]) + '\n'
+            s = s + key + ':' + str(self.__dict__[key]) + '\n'
 
         return s
 
@@ -53,8 +54,18 @@ def dB2lin(dB, dBtype='dBm'):
 
     return 10 ** ((dB + fact) / 10)
 
+
 def p_norm(p, x, fun=lambda x: torch.pow(torch.abs(x), 2)):
     return torch.sum(p * fun(x))
+
+
+def generate_complex_AWGN(x_shape, SNR_db):
+    noise_cpx = torch.complex(torch.randn(x_shape), torch.randn(x_shape))
+    sigma2 = torch.tensor(1) / hlp.dB2lin(SNR_db, 'dB')  # 1 corresponds to the Power
+    noise = torch.sqrt(sigma2) * torch.rsqrt(torch.tensor(2)) * noise_cpx
+    noise_power = torch.mean(torch.square(torch.abs(noise)))
+    return noise, sigma2, noise_power
+
 
 def SNRtoMI(N, effSNR, constellation):
     N = int(N)
@@ -127,6 +138,7 @@ def gaussianMI_Non_Uniform(idx, x, y, constellation, M, P_X, dtype=torch.double)
     MI = HX + torch.mean(torch.log2(qXonY))
 
     return MI
+
 
 def gaussianMI(x, y, constellation, M, dtype=torch.double):
     """

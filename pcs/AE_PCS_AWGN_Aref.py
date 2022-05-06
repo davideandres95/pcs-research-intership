@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-:
+import time
 
 import matplotlib.pyplot as plt
 import torch
@@ -12,6 +13,9 @@ import tx
 import helper as hlp
 import utils
 import autoencoder as ae
+
+timestr = time.strftime("%Y%m%d-%H%M%S")
+
 # Parameters
 # Channel Parameters
 chParam = utils.AttrDict()
@@ -28,9 +32,9 @@ aeParam.nFeaturesDec  = 128
 
 # Training Parameters
 trainingParam = utils.AttrDict()
-trainingParam.nBatches      = 4
-trainingParam.batchSize     = 32*chParam.M
-trainingParam.learningRate  = 0.0001
+trainingParam.nBatches      = 32
+trainingParam.batchSize     = 7500
+trainingParam.learningRate  = 1e-2
 trainingParam.iterations    = 31
 trainingParam.displayStep   = 5
 
@@ -50,13 +54,6 @@ def loss_correction_factor(dec, zhat, sig2):
      p = torch.prod(calculate_py_given_x(zhat, sig2/torch.tensor(2)), 1) # P(Y_n|c_i)
      return torch.mean(p * torch.log2(q))
 
-def generate_complex_AWGN(x_shape, SNR_db):
-    noise_cpx = torch.complex(torch.randn(x_shape), torch.randn(x_shape))
-    sigma2 = torch.tensor(1) / hlp.dB2lin(SNR_db, 'dB')  # 1 corresponds to the Power
-    noise = torch.sqrt(sigma2) * torch.rsqrt(torch.tensor(2)) * noise_cpx
-    noise_power = torch.mean(torch.square(torch.abs(noise)))
-    return noise, sigma2, noise_power
-
 def plot_2D_PDF(axs, const, pmf, db, k):
     i = k // 2
     j = k % 2
@@ -68,7 +65,7 @@ def plot_2D_PDF(axs, const, pmf, db, k):
 # Constant input
 enc_inp = torch.tensor([[1]], dtype=torch.float)
 
-fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+fig, axs = plt.subplots(3, 2, figsize=(10, 15))
 
 
 for (k, SNR_db) in enumerate(chParam.SNR_db):
@@ -107,11 +104,9 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             should_always_be_one = utils.p_norm(P_M, norm_constellation)
 
             # Channel
-            noise_snr, sigma2, noise_power = generate_complex_AWGN(x.shape, SNR_db)
-
+            noise_snr, sigma2, noise_power = utils.generate_complex_AWGN(x.shape, SNR_db)
             y = torch.add(x, noise_snr)
-
-            y_power = utils.p_norm(P_M, torch.add(norm_constellation, generate_complex_AWGN(norm_constellation.shape, SNR_db)[0] ))
+            y_power = utils.p_norm(P_M, torch.add(norm_constellation, utils.generate_complex_AWGN(norm_constellation.shape, SNR_db)[0] ))
 
             # demodulator
             y_vec = hlp.complex2real(torch.squeeze(y))
@@ -133,7 +128,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
         # Printout and visualization
         if j % int(trainingParam.displayStep) == 0:
             print(f'epoch {j}: Loss = {loss_hat.detach().numpy() / np.log(2) :.4f} - always 1: {should_always_be_one :.2} - MI: {MI :.4f} - Cap.: {AWGN_Cap:.4f}')
-        if loss < -10:
+        if loss_hat < -100:
             break
 
     # Data for the plots
@@ -147,5 +142,6 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     print('Power should always be one:', utils.p_norm(p_s_t, norm_constellation))
     plot_2D_PDF(axs, constellation, p_s, SNR_db, k)
 
-
+fig.text(.5, .03, trainingParam, ha='center')
+plt.savefig(f'../plots/Aref/constellations_{timestr}.png')
 fig.show()
