@@ -33,10 +33,10 @@ aeParam.nFeaturesDec  = 128
 # Training Parameters
 trainingParam = utils.AttrDict()
 trainingParam.nBatches      = 32
-trainingParam.batchSize     = 100
+trainingParam.batchSize     = 5000
 trainingParam.learningRate  = 1e-5
-trainingParam.iterations    = 31
-trainingParam.displayStep   = 5
+trainingParam.iterations    = 101
+trainingParam.displayStep   = 10
 
 def p_norm(p, x, fun=lambda x: torch.pow(torch.abs(x), 2)):
     return torch.sum(p * fun(x))
@@ -119,8 +119,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             loss_hat.backward()
             optimizer.step()
 
-            #breakpoint()
-            MI = utils.gaussianMI_Non_Uniform(s.type(torch.int64), x, y, norm_constellation, chParam.M, p_s, dtype=torch.double).detach().numpy()
+            MI = utils.gaussianMI_Non_Uniform(torch.argmax(s, dim=1), x, y, norm_constellation, chParam.M, p_s, dtype=torch.double).detach().numpy()
 
         # Printout and visualization
         if j % int(trainingParam.displayStep) == 0:
