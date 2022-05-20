@@ -1,7 +1,9 @@
 import numpy as np
+import scipy.stats
 import torch
 from scipy.optimize import fminbound
-import helper as hlp
+from pcs import helper as hlp
+import matplotlib.pyplot as plt
 
 
 class AttrDict(dict):
@@ -57,6 +59,13 @@ def dB2lin(dB, dBtype='dBm'):
 
 def p_norm(p, x, fun=lambda x: torch.pow(torch.abs(x), 2)):
     return torch.sum(p * fun(x))
+
+
+def get_py_on_x(chi, y, N0):
+    return np.power(2 * np.pi * N0, -0.5) * np.exp(-np.square(y + chi) / (2 * N0))
+
+def get_p_y(chi, y, N0):
+    return np.mean([get_py_on_x(i, y, N0) for i in chi])
 
 
 def generate_complex_AWGN(x_shape, SNR_db):
@@ -125,15 +134,15 @@ def gaussianMI_Non_Uniform(idx, x, y, constellation, M, P_X, dtype=torch.double)
 
     qY = []
     for ii in np.arange(M):
-        temp = P_X[ii] * (1 / (PI * N0) *torch.exp((-torch.square(
+        temp = P_X[ii] * (1 / (PI * N0) * torch.exp((-torch.square(
             y.real - constellation[ii, 0].real) - torch.square(
-            y.imag - constellation[ii, 0].imag )) / N0))
+            y.imag - constellation[ii, 0].imag)) / N0))
         qY.append(temp)
     qY = torch.sum(torch.cat(qY, dim=0), dim=0)
 
     qXonY = P_X[idx] * torch.max(qYonX, REALMIN) / torch.max(qY, REALMIN)
 
-    HX =  -p_norm(P_X, P_X, lambda x: torch.log2(x))
+    HX = -p_norm(P_X, P_X, lambda x: torch.log2(x))
 
     MI = HX + torch.mean(torch.log2(qXonY))
 
@@ -180,9 +189,9 @@ def gaussianMI(x, y, constellation, M, dtype=torch.double):
 
     qY = []
     for ii in np.arange(M):
-        temp = P_X[ii] * (1 / (PI * N0) *torch.exp((-torch.square(
+        temp = P_X[ii] * (1 / (PI * N0) * torch.exp((-torch.square(
             y.real - constellation[ii, 0].real) - torch.square(
-            y.imag - constellation[ii, 0].imag )) / N0))
+            y.imag - constellation[ii, 0].imag)) / N0))
         qY.append(temp)
     qY = torch.sum(torch.cat(qY, dim=0), dim=0)
 
@@ -228,7 +237,7 @@ def calcMI_MC(x, y, constellation):
     qY = 0
     for ii in np.arange(M):
         qY = qY + P_X[ii] * (1 / (np.pi * N0) * np.exp((-(np.real(y) - np.real(constellation[ii, 0])) ** 2 - (
-                    np.imag(y) - np.imag(constellation[ii, 0])) ** 2) / N0))
+                np.imag(y) - np.imag(constellation[ii, 0])) ** 2) / N0))
 
     realmin = np.finfo(float).tiny
     MI = 1 / N * np.sum(np.log2(np.maximum(qYonX, realmin) / np.maximum(qY, realmin)))
@@ -253,3 +262,29 @@ def generateUniqueBitVectors(M):
     for ii in range(M):
         d[ii, :] = np.array([float(x) for x in np.binary_repr(ii, width=w)])
     return d
+
+
+def py_BPSK(y, P, N0):
+    return 0.5 * np.power(2 * np.pi * N0, -0.5) * \
+           (np.exp(-np.square(y + np.sqrt(P)) / (2 * N0)) + np.exp(-np.square(y - np.sqrt(P)) / (2 * N0)))
+
+
+def cap_BPSK(P, N0):
+    py = [py_BPSK(y, P, N0) for y in np.arange(-1000, 1000, 1)]
+    return scipy.stats.entropy(py, base=2) - 0.5 * np.log2(2 * np.pi * np.e * N0)
+
+def plot_references():
+    fig2, ax2 = plt.subplots()
+    plot_snr = np.arange(-5, 30, 1)
+    AWGN_cap = [np.log2(1 + hlp.dB2lin(p, 'dB')) for p in plot_snr]
+    BPSK_cap = [cap_BPSK(P=hlp.dB2lin(p, 'dB'), N0=1) for p in plot_snr]
+    QPSK_cap = [2 * cap_BPSK(P=hlp.dB2lin(p, 'dB'), N0=1) for p in plot_snr]
+    # QAM_16 = [4 * cap_BPSK(P=hlp.dB2lin(p, 'dB'), N0=1) for p in plot_snr]
+    # QAM_64 = [8 * cap_BPSK(P=hlp.dB2lin(p, 'dB'), N0=1) for p in plot_snr]
+
+    ax2.plot(plot_snr, AWGN_cap, label='AWGN')
+    ax2.plot(plot_snr, BPSK_cap, label='BPSK')
+    ax2.plot(plot_snr+2, QPSK_cap, label='QPSK')
+    # ax2.plot(plot_snr, QAM_16, label='16-QAM')
+    # ax2.plot(plot_snr, QAM_64, label='64-QAM')
+    return fig2, ax2
