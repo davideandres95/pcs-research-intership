@@ -15,18 +15,21 @@ chParam.SNR_db = [0, 3, 5, 7, 12, 30]
 
 # Training Parameters
 trainingParam = utils.AttrDict()
-trainingParam.nBatches      = 32
-trainingParam.batchSize     = 2000
-trainingParam.learningRate  = 1e-4
-trainingParam.iterations    = 31
-trainingParam.displayStep   = 5
+trainingParam.nBatches = 32
+trainingParam.batchSize = 2000
+trainingParam.learningRate = 1e-4
+trainingParam.iterations = 31
+trainingParam.displayStep = 5
+
 
 def r2c(x):
-    #a = torch.tensor(x, dtype=torch.double)
+    # a = torch.tensor(x, dtype=torch.double)
     return x.type(torch.complex64)
+
 
 def p_norm(p, x, fun=lambda x: torch.pow(torch.abs(x), 2)):
     return torch.sum(p * fun(x))
+
 
 def gaussianMI(x, y, constellation, M, dtype=torch.double):
     """
@@ -58,7 +61,7 @@ def gaussianMI(x, y, constellation, M, dtype=torch.double):
 
     xint = torch.argmin(torch.square(torch.abs(x - constellation)), axis=0).type(torch.int32)
     x_count = torch.bincount(xint)
-    x_count = torch.reshape(x_count, (M, ))
+    x_count = torch.reshape(x_count, (M,))
     P_X = x_count.type(torch.float) / N
 
     N0 = torch.mean(torch.square(torch.abs(x - y)))
@@ -68,9 +71,9 @@ def gaussianMI(x, y, constellation, M, dtype=torch.double):
 
     qY = []
     for ii in np.arange(M):
-        temp = P_X[ii] * (1 / (PI * N0) *torch.exp((-torch.square(
+        temp = P_X[ii] * (1 / (PI * N0) * torch.exp((-torch.square(
             y.real - constellation[ii, 0].real) - torch.square(
-            y.imag - constellation[ii, 0].imag )) / N0))
+            y.imag - constellation[ii, 0].imag)) / N0))
         qY.append(temp)
     qY = torch.sum(torch.cat(qY, dim=0), dim=0)
 
@@ -120,24 +123,23 @@ def gaussianMI_Non_Uniform(idx, x, y, constellation, M, P_X, dtype=torch.double)
 
     qY = []
     for ii in np.arange(M):
-        temp = P_X[ii] * (1 / (PI * N0) *torch.exp((-torch.square(
+        temp = P_X[ii] * (1 / (PI * N0) * torch.exp((-torch.square(
             y.real - constellation[ii, 0].real) - torch.square(
-            y.imag - constellation[ii, 0].imag )) / N0))
+            y.imag - constellation[ii, 0].imag)) / N0))
         qY.append(temp)
     qY = torch.sum(torch.cat(qY, dim=0), dim=0)
 
     qXonY = P_X[idx] * torch.max(qYonX, REALMIN) / torch.max(qY, REALMIN)
 
-    HX =  -p_norm(P_X, P_X, lambda x: torch.log2(x))
+    HX = -p_norm(P_X, P_X, lambda x: torch.log2(x))
 
     MI = HX + torch.mean(torch.log2(qXonY))
 
     return MI
 
 
-
 def calculate_py_given_x(x, y, sigma2):
-    return (1/(np.sqrt(2*np.pi*sigma2))) * np.exp(-(y-x)**2/sigma2/2)
+    return (1 / (np.sqrt(2 * np.pi * sigma2))) * np.exp(-(y - x) ** 2 / sigma2 / 2)
 
 
 def calculate_px_given_y(x, y, sigma2, constellation):
@@ -149,9 +151,9 @@ def calculate_px_given_y(x, y, sigma2, constellation):
 
 
 def test_MI_calculation():
-    SNRdBs = np.arange(0,30,1)
+    SNRdBs = np.arange(0, 30, 1)
     mi = np.zeros(SNRdBs.size)
-    for idx,snr in enumerate(hlp.dB2lin(SNRdBs, 'dB')):
+    for idx, snr in enumerate(hlp.dB2lin(SNRdBs, 'dB')):
         indexes = torch.tensor(np.random.randint(0, chParam.M, size=(1000)), dtype=torch.int64)
         s = F.one_hot(indexes)
         p_s = torch.tensor(np.ones(chParam.M) * 1 / chParam.M)
@@ -171,21 +173,23 @@ def test_MI_calculation():
 
         y = torch.add(x, noise_snr)
 
-        mi[idx] = gaussianMI_Non_Uniform(indexes, x, y, norm_constellation, 64, p_s, dtype=torch.double).detach().numpy()
+        mi[idx] = gaussianMI_Non_Uniform(indexes, x, y, norm_constellation, 64, p_s,
+                                         dtype=torch.double).detach().numpy()
         print("MI: ", mi[idx], "AWGN Cap: ", np.log2(1 + snr))
 
     plt.plot(SNRdBs, mi, label='MI (analytical)')
-    plt.plot(SNRdBs, np.log2(1+ hlp.dB2lin(SNRdBs, 'dB')), label='AWGN Capacity')
+    plt.plot(SNRdBs, np.log2(1 + hlp.dB2lin(SNRdBs, 'dB')), label='AWGN Capacity')
     plt.xlabel('SNR [dB]')
     plt.ylabel('Mutual Information')
     plt.legend()
     plt.grid()
 
     plt.figtext(0.25, 0.5, trainingParam, horizontalalignment='center',
-               fontsize=9, multialignment='left',
-               bbox=dict(boxstyle="round", facecolor='#D8D8D8',
-               ec="0.5", pad=0.5, alpha=1),)
+                fontsize=9, multialignment='left',
+                bbox=dict(boxstyle="round", facecolor='#D8D8D8',
+                          ec="0.5", pad=0.5, alpha=1), )
     plt.show()
+
 
 def test_c2r():
     real = torch.rand(10, requires_grad=True)
@@ -194,4 +198,20 @@ def test_c2r():
     data = hlp.complex2real(data)
     data.mean().backward()
 
-test_MI_calculation()
+def test_cap_plot():
+    plot_snr = np.arange(-5, 25, 1)
+    AWGN_cap = [np.log2(1 + hlp.dB2lin(p, 'dB')) for p in plot_snr]
+    BPSK_cap = [utils.cap_BPSK(P=hlp.dB2lin(p, 'dB'), N0=1) for p in plot_snr]
+    QPSK_cap = [2 * utils.cap_BPSK(P=hlp.dB2lin(p, 'dB'), N0=1) for p in plot_snr]
+    plt.plot(plot_snr, BPSK_cap, label='BPSK')
+    plt.plot(plot_snr+hlp.dB2lin(3, 'dB'), QPSK_cap, label='QPSK')
+    plt.plot(plot_snr, AWGN_cap, label='AWGN')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+chi = np.multiply(1/np.sqrt(2),[1+1j, 1-1j, -1+1j, -1-1j])
+chi_flattened = []
+[chi_flattened.append(np.real(i)) for i in chi]
+[chi_flattened.append(np.imag(i)) for i in chi]
+print(utils.get_p_y(chi_flattened, 5, 1))

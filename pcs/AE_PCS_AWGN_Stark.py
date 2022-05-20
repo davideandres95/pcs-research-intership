@@ -20,7 +20,7 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Channel Parameters
 chParam = utils.AttrDict()
 chParam.M = 64
-chParam.SNR_db = [0, 3, 5, 7, 12, 30]
+chParam.SNR_db = [3, 5, 7, 12, 20, 30]
 
 # Auto-Encoder Parameters
 aeParam = utils.AttrDict()
@@ -32,11 +32,11 @@ aeParam.nFeaturesDec  = 128
 
 # Training Parameters
 trainingParam = utils.AttrDict()
-trainingParam.nBatches      = 32
-trainingParam.batchSize     = 5000
-trainingParam.learningRate  = 1e-5
-trainingParam.iterations    = 101
-trainingParam.displayStep   = 10
+trainingParam.nBatches      = 16
+trainingParam.batchSize     = 32 * chParam.M
+trainingParam.learningRate  = 1e-3
+trainingParam.iterations    = 30
+trainingParam.displayStep   = 5
 
 def p_norm(p, x, fun=lambda x: torch.pow(torch.abs(x), 2)):
     return torch.sum(p * fun(x))
@@ -59,6 +59,17 @@ def plot_2D_PDF(axs, const, pmf, db, k):
     axs[i, j].title.set_text(f'SNR = {db} dB')
     axs[i, j].grid()
 
+
+def plot_cap(mi, SNR_db):
+    fig2, ax2 = utils.plot_references()
+    ax2.plot(SNR_db, mi, label='64-QAM-PCS')
+    ax2.set_xlabel('SNR [dB]')
+    ax2.set_ylabel('Mutual Information')
+    ax2.legend()
+    ax2.grid()
+    fig2.show()
+
+
 def calculate_avg_power(x, p_s):
     return torch.sum(torch.pow(torch.abs(x), 2) * p_s)
 
@@ -67,7 +78,7 @@ def calculate_avg_power(x, p_s):
 enc_inp = torch.tensor([[1]], dtype=torch.float)
 fig, axs = plt.subplots(3, 2, figsize=(10, 15))
 
-
+mi = np.zeros(len(chParam.SNR_db))
 
 for (k, SNR_db) in enumerate(chParam.SNR_db):
     print(f'---SNR = {chParam.SNR_db[k]} dB---')
@@ -124,10 +135,11 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
         # Printout and visualization
         if j % int(trainingParam.displayStep) == 0:
             print(f'epoch {j}: Loss = {loss_hat.detach().numpy() / np.log(2) :.4f} - always 1: {should_always_be_one :.2} - MI: {MI :.4f} - Cap.: {AWGN_Cap:.4f}')
-        if loss_hat < -100:
+        if (loss_hat.detach().numpy() / np.log(2)) < -100:
             break
 
     # Data for the plots
+    mi[k] = MI
     p_s_t = F.softmax(encoder(enc_inp), dim=1)
     p_s = p_s_t.detach().numpy()[0]
     constellation = tx.qammod(chParam.M)
@@ -138,6 +150,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     print('Power should always be one:', p_norm(p_s_t, norm_constellation))
     plot_2D_PDF(axs, constellation, p_s, SNR_db, k)
 
+plot_cap(mi, chParam.SNR_db)
 fig.text(.5, .03, trainingParam, ha='center')
 plt.savefig(f'../plots/Stark/constellations_{timestr}.png')
 fig.show()
