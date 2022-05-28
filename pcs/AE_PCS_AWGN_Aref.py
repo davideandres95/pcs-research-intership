@@ -32,10 +32,10 @@ aeParam.nFeaturesDec  = 128
 # Training Parameters
 trainingParam = utils.AttrDict()
 trainingParam.nBatches      = 32
-trainingParam.batchSize     = 32 * chParam.M
-trainingParam.learningRate  = 1e-3
-trainingParam.iterations    = 101
-trainingParam.displayStep   = 20
+trainingParam.batchSize     = 64 * chParam.M
+trainingParam.learningRate  = 1e-2
+trainingParam.iterations    = 31
+trainingParam.displayStep   = 5
 
 
 def sampler(P_M, B):
@@ -124,7 +124,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             dec = decoder(y_vec)
 
             # loss
-            zhat = (y_vec - hlp.complex2real(torch.squeeze(x)))
+            zhat =  torch.sub(y_vec, hlp.complex2real(torch.squeeze(x)))
             loss = CEloss(dec, onehot.type(torch.float))
             factor = loss_correction_factor(F.softmax(dec, 1), zhat, sigma2)
 
