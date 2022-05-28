@@ -18,8 +18,8 @@ timestr = time.strftime("%Y%m%d-%H%M%S")
 # Parameters
 # Channel Parameters
 chParam = utils.AttrDict()
-chParam.M = 16
-chParam.SNR_db = [3, 5, 7, 12, 20, 30]
+chParam.M = 64
+chParam.SNR_db = [5, 12, 30]
 
 # Auto-Encoder Parameters
 aeParam = utils.AttrDict()
@@ -33,9 +33,10 @@ aeParam.nFeaturesDec  = 128
 trainingParam = utils.AttrDict()
 trainingParam.nBatches      = 32
 trainingParam.batchSize     = 32 * chParam.M
-trainingParam.learningRate  = 1e-5
+trainingParam.learningRate  = 1e-3
 trainingParam.iterations    = 101
 trainingParam.displayStep   = 20
+
 
 def sampler(P_M, B):
     samples = torch.empty(0)
@@ -50,8 +51,8 @@ def calculate_py_given_x(z, sig2):
 
 def loss_correction_factor(dec, zhat, sig2):
      q = torch.amax(dec, 1)  # Q(c_i|Y_n) <-- learned
-     p = torch.prod(calculate_py_given_x(zhat, sig2/torch.tensor(2)), 1) # P(Y_n|c_i)
-     return torch.mean(p * torch.log2(q))
+     p = torch.prod(calculate_py_given_x(zhat, sig2/torch.tensor(2)), dim=1) # P(Y_n|c_i)
+     return torch.sum(p * torch.log2(q))
 
 def plot_2D_PDF(axs, const, pmf, db, k):
     i = k // 2
@@ -97,6 +98,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             # first generate the distribution
             l_M = encoder(enc_inp)
             P_M = F.softmax(l_M, dim=1)
+            dP_M = torch.mean(-torch.log2(P_M*torch.e))
 
             # Sample indexes
             indices = sampler(torch.squeeze(P_M), trainingParam.batchSize).type(torch.LongTensor)  # labels
@@ -123,21 +125,23 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
 
             # loss
             zhat = (y_vec - hlp.complex2real(torch.squeeze(x)))
-            #N0 = torch.mean(torch.square(torch.abs(x - y)))
             loss = CEloss(dec, onehot.type(torch.float))
-            loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), zhat, sigma2)
-            #loss_hat = loss + loss_correction_factor(F.softmax(dec, 1), x, y)
+            factor = loss_correction_factor(F.softmax(dec, 1), zhat, sigma2)
 
             optimizer.zero_grad()
-            loss_hat.backward()
+            loss.backward()
+
+            for p in encoder.parameters():
+                p.grad += dP_M + factor
+
             optimizer.step()
 
             MI = utils.gaussianMI_Non_Uniform(indices, x, y, norm_constellation, chParam.M, P_M, dtype=torch.double).detach().numpy()
 
         # Printout and visualization
         if j % int(trainingParam.displayStep) == 0:
-            print(f'epoch {j}: Loss = {loss_hat.detach().numpy() / np.log(2) :.4f} - always 1: {should_always_be_one :.2} - MI: {MI :.4f} - Cap.: {AWGN_Cap:.4f}')
-        if (loss_hat.detach().numpy() / np.log(2)) < -100.0:
+            print(f'epoch {j}: Loss = {loss.detach().numpy() / np.log(2) :.4f} - always 1: {should_always_be_one :.2} - MI: {MI :.4f} - Cap.: {AWGN_Cap:.4f}')
+        if (loss.detach().numpy() / np.log(2)) < -100.0:
             break
 
     # Data for the plots
@@ -148,7 +152,6 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     constellation_t = torch.tensor(constellation, dtype=torch.cfloat)
     norm_factor = torch.rsqrt(utils.p_norm(p_s_t, constellation_t))
     norm_constellation = norm_factor * constellation_t
-    #print(p_s)
     print('Power should always be one:', utils.p_norm(p_s_t, norm_constellation))
     plot_2D_PDF(axs, constellation, p_s, SNR_db, k)
 

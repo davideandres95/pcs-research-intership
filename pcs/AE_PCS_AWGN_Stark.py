@@ -128,6 +128,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
 
             optimizer.zero_grad()
             loss_hat.backward()
+
             optimizer.step()
 
             MI = utils.gaussianMI_Non_Uniform(torch.argmax(s, dim=1), x, y, norm_constellation, chParam.M, p_s, dtype=torch.double).detach().numpy()

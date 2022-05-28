@@ -93,6 +93,59 @@ def SNRtoMI(N, effSNR, constellation):
     return calcMI_MC(x, y, constellation)
 
 
+def gaussianMI_ASK_Non_Uniform(idx, x, y, constellation, M, P_X, dtype=torch.double):
+    """
+        Computes mutual information with Gaussian auxiliary channel assumption and constellation with given porbability distribution
+        x: (1, N), N normalized complex samples at the transmitter, where N is the batchSize/sampleSize
+        y: (1, N), N normalized complex observations at the receiver, where N is the batchSize/sampleSize
+        constellation: (1, M), normalized complex constellation of order M
+        P_X: (1, M), probability distribution
+    """
+    if len(constellation.shape) == 1:
+        constellation = torch.unsqueeze(constellation, dim=0)
+    if len(y.shape) == 1:
+        y = torch.unsqueeze(y, dim=0)
+    if len(x.shape) == 1:
+        x = torch.unsqueeze(x, dim=0)
+    if len(idx.shape) == 1:
+        idx = torch.unsqueeze(idx, dim=0)
+    if len(P_X.shape) == 1:
+        P_X = torch.unsqueeze(P_X, dim=0)
+    if y.shape[0] != 1:
+        y = torch.transpose(y, dim0=0, dim1=1)
+    if x.shape[0] != 1:
+        x = torch.transpose(x, dim0=0, dim1=1)
+    if constellation.shape[0] == 1:
+        constellation = torch.transpose(constellation, dim0=0, dim1=1)
+    if P_X.shape[0] == 1:
+        P_X = torch.transpose(P_X, dim0=0, dim1=1)
+    if idx.shape[0] == 1:
+        idx = torch.transpose(idx, dim0=0, dim1=1)
+
+    PI = torch.pi
+    REALMIN = torch.tensor(np.finfo(float).tiny, dtype=dtype)
+
+    N0 = torch.mean(torch.square(torch.abs(x - y)))
+
+    qY = []
+
+    qYonX = (1 / torch.sqrt(torch.tensor(2) * torch.pi * N0)) * torch.exp( -torch.square(y - x) / (torch.tensor(2) * N0))
+
+    for ii in np.arange(M):
+        temp = P_X[ii] * (1 / torch.sqrt(torch.tensor(2) * torch.pi * N0)) * torch.exp(
+            -torch.square(y - constellation[ii]) / (torch.tensor(2) * N0))
+        qY.append(temp)
+
+    qY = torch.sum(torch.cat(qY, dim=0), dim=0)
+
+    qXonY = P_X[idx] * torch.max(qYonX, REALMIN) / torch.max(qY, REALMIN)
+
+    HX = -p_norm(P_X, P_X, lambda x: torch.log2(x))
+
+    MI = HX - torch.mean(-torch.log2(qXonY))
+
+    return MI
+
 def gaussianMI_Non_Uniform(idx, x, y, constellation, M, P_X, dtype=torch.double):
     """
         Computes mutual information with Gaussian auxiliary channel assumption and constellation with given porbability distribution
@@ -133,11 +186,13 @@ def gaussianMI_Non_Uniform(idx, x, y, constellation, M, P_X, dtype=torch.double)
         (-torch.square(y.real - x.real) - torch.square(y.imag - x.imag)) / N0)
 
     qY = []
+
     for ii in np.arange(M):
         temp = P_X[ii] * (1 / (PI * N0) * torch.exp((-torch.square(
             y.real - constellation[ii, 0].real) - torch.square(
             y.imag - constellation[ii, 0].imag)) / N0))
         qY.append(temp)
+
     qY = torch.sum(torch.cat(qY, dim=0), dim=0)
 
     qXonY = P_X[idx] * torch.max(qYonX, REALMIN) / torch.max(qY, REALMIN)
