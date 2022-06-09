@@ -14,12 +14,25 @@ class Encoder_Stark(nn.Module):
         y = self.act1(self.lin1(y))
         return self.lin2(y)
 
+class Encoder_Aref_single_layer(nn.Module):
+    def __init__(self, in_features=2, out_features=2, bias=True):
+        super().__init__()
+        self.lin1 = nn.Linear(in_features, out_features, bias=bias)
+        if bias:
+            nn.init.zeros_(self.lin1.bias)
+        nn.init.constant_(self.lin1.weight, 1 / out_features)
+
+    def forward(self, y):
+        return self.lin1(y)
+
+
 class Encoder_Aref(nn.Module):
     def __init__(self, in_features=2, width=2, out_features=2):
         super().__init__()
         self.lin1 = nn.Linear(in_features, width)
         nn.init.constant_(self.lin1.weight, 1 / width)
         nn.init.zeros_(self.lin1.bias)
+
         self.lin2 = nn.Linear(width, out_features)
         nn.init.constant_(self.lin2.weight, 1 / out_features)
         nn.init.zeros_(self.lin2.bias)

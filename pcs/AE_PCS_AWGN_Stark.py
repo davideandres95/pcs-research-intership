@@ -151,8 +151,8 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
     print('Power should always be one:', p_norm(p_s_t, norm_constellation))
     plot_2D_PDF(axs, constellation, p_s, SNR_db, k)
 
-plot_cap(mi, chParam.SNR_db)
 fig.text(.5, .03, trainingParam, ha='center')
 plt.savefig(f'../plots/Stark/constellations_{timestr}.png')
+plot_cap(mi, chParam.SNR_db)
 fig.show()
 
