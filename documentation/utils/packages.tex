@@ -1,0 +1,19 @@
+%!TEX root = ../main.tex
+\usepackage[
+    shortcuts,       % enable short forms like gls etc.
+    acronym,         % enable auto-generation of the acronym glossary
+    nomain,          % disable the main glossary
+    section=chapter, % set the glossary title format to be like a chapter (alternatives are section, subsection, etc.)
+    toc=true,        % show in table of contents
+]{glossaries}
+\glsenableentrycount % enable counting of the references, otherwise \cgls does the same as \gls
+
+\usepackage{siunitx} % for \Si, \SI and \SIRange
+\sisetup{
+    range-units=single, % only print unit once, e.g. 2 to 4 ◦C
+    range-phrase=--, % print a range with dashes instead of "to"
+    scientific-notation = engineering, % format numbers as 1.2x10^3 (with exponents multiple of 3)
+}
+\DeclareSIUnit\baud{Bd} % define Baud
+
+\usepackage[capitalize]{cleveref} % \cref

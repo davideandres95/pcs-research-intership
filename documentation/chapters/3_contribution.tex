@@ -1,0 +1,56 @@
+%!TEX root = ../main.tex
+\chapter{contribution}\label{chap:contribution}
+\section{Notation}
+In the following we will use the notation:
+\begin{align*}
+	\mathbb{I} \left(X , Y; D, P_M, C_M \right)
+\end{align*}
+which expresses the mutual information between $X$ and $Y$ and $D, P_M, C_M$, separated by a semi-colon, are the trainable parameters of the system. The parameters can be seen as additional input to a function.
+\section{Optimization of trainable parameters}
+As we have seen in chapter \ref{chap:preliminaries}, the goal of probabilistic constellation shaping is to maximize the mutual information
+\begin{align}
+\label{eqn:mi_goal}
+	 \max_{D, P_M, C_M} \mathbb{I} \left(X , Y ; D, P_M, C_M \right) \overset{\text{(a)}}{=} \mathbb{H}(X) - \mathbb{X}(P_{X|Y} \Vert Q_{X|Y} ; D,P,C)
+\end{align}
+
+where the entropy is maximized when the probabilities of the constellation points follow a  Gaussian distribution; and the cross-equivocation is minimum when $Q_{X|Y} = P_{X|Y}$.
+
+Typically, the gradient descent (ascent) allows us to solve the optimization problem by adjusting the trainable parameters as:
+\begin{align}
+	\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} \mathbb{I} \left(X , Y ; \theta_{old} \right)
+\end{align}
+for all trainable parameters $\theta \in P, C, D$. However, [work in progress...]
+
+We will need to numerically compute the terms in \ref{eqn:mi_goal}. For this reason, we will use the following expansions:
+\begin{align}
+	\mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y} \vert Y=b \right) = \sum \limits_{a \in Supp(P_{X|Y}(\cdot|b))} P_{X|Y}(a|b) \log_2(Q_{X|Y}(a|b))
+\end{align}
+
+\begin{align}
+	\mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y}\right) = \sum \limits_{b \in Supp(P_Y)} P_Y(b) \mathbb{X}\left( P_{X|Y} \Vert Q_{X|Y} \vert Y=b \right) 
+\end{align}
+
+which combined together and applying Bayes' theorem yields
+
+\begin{align}
+\label{eqn:CE_expanded}
+	\mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y}\right) = \sum \limits_{(a,b) \in Supp(P_{XY})} P_X(a) P_{Y|X}(b|a) \log_2(Q_{X|Y}(a|b)). 
+\end{align}
+
+Precisely, we must compute the derivative terms of \ref{eqn:CE_expanded} with respect to $P_X(j), j \in \mathcal{X}$. This is
+\begin{align}
+	\pdv{P_X(j)} \mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y}\right) &= \sum \limits_{b \text{ if } x=j} P_{Y|X}(b|j) \log_2 Q_{X|Y}(j|b) \\
+	& + \sum \limits_{(a,b) \in Supp(P_{XY})} P_{XY}(a, b) \pdv{P_X(j)} \log_2 Q_{X|Y}(a|b)
+\end{align}
+which can be rewritten using the expectation operator as
+\begin{align}
+	\pdv{P_X(j)} \mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y}\right) &= \mathbb{E}_{Y|X}[ \log_2 Q_{X|Y}(j|b)| X=j] \\
+	& + \mathbb{E}_{XY}[ \pdv{P_X(j)} \log_2 Q_{X|Y}(a|b)].
+\end{align}
+The terms can now be numerically computed as
+\begin{align}
+	\mathbb{E}_{Y|X}[ \log_2 Q_{X|Y}(j|b)| X=j] \approx \dfrac{1}{BP_X(j)}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b)
+\end{align}
+\begin{align}
+	\mathbb{E}_{XY}[ \pdv{P_X(j)} \log_2 Q_{X|Y}(a|b)] \approx \dfrac{1}{B} \sum \limits_{(a,b) \in Supp(P_{XY})} \log_2 Q_{X|Y}(a|b)
+\end{align}

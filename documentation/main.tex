@@ -1,0 +1,95 @@
+% Load the institute for communications engineering document class
+\documentclass[chair=lut]{ICEthesis} % options for the chair are lnt (default), lut or cod
+
+\input{utils/packages}
+\input{utils/misc}
+\input{utils/acronyms}
+\usepackage{physics}
+
+
+\begin{document}
+% ##########
+% Title page
+% ##########
+\ICEtitle{Master's Thesis} % Thesis type (Master's Thesis or Bachelor's Thesis)
+    {Thesis Title}
+    {Student Name}
+    {Dipl.-Ing.~Advisor}
+    {München, Month Year}
+    { % your data
+        Student Name\\
+        Streetname Number\\
+        ZIP München\\
+        your.email@addre.ss
+    }
+
+\ICErecht{Student Name}{München, xx.xx.20xx}
+
+\cleardoubleemptypage % start new double page / neue Doppelseite
+
+
+
+% ########################################
+% Table of Contents / Inhaltsverzeichnis
+% ########################################
+% roman page numbering, starting with page number 1
+\setcounter{page}{1}
+\pagenumbering{roman}
+
+\tableofcontents
+% list of figures and list of tables is optional, feel free to comment if you like
+%\listoffigures
+%\listoftables
+\cleardoubleemptypage
+
+
+% ########
+% Chapters
+% ########
+% arabic page numbering, starting with page number 1
+\setcounter{page}{1}
+\pagenumbering{arabic}
+
+% Include chapters
+\input{chapters/0_abstract}
+\input{chapters/1_introduction}
+\input{chapters/2_preliminaries}
+\input{chapters/3_contribution}
+%\input{chapters/simulation}
+%\input{chapters/conclusions}
+
+\cleardoubleemptypage
+
+
+
+% ########
+% Appendix
+% ########
+\appendix
+\input{chapters/appendixA}
+\input{chapters/appendixB}
+
+% ### list of acronyms (comment out if does not work and you don't want to make it work)
+\printglossary[
+    type = acronym,
+    title = List of Abbreviations,
+    toctitle = List of Abbreviations,
+    style = long,
+    nonumberlist,
+    numberedsection = false,
+]
+
+% ### bibliography
+% Use IEEE DIN 1505 style for bibliography
+\bibliographystyle{IEEEtranSA}
+%\nocite{*} % include all references without checking (don't do this)
+\bibliography{refs}
+\end{document}
+
+%
+% EOF!
+%
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:

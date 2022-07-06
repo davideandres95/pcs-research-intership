@@ -1,0 +1,30 @@
+%!TEX root = ../main.tex
+\makeglossaries % has to come first
+%
+% Example:
+% \newacronym{xy}{XY}{Full Text}
+% where xy is what you write in \[c]gls commands, XY is the acronym written in the text
+% and "Full Text" is what is written out on the first occasion.
+% The "c" prefix means "counting". It takes a bit of processing time, but it will figure out if an acronym is
+% only used once and in that case only print the long version and not introduce the acronym at all.
+%
+% To use these acronyms in the text:
+% \cgls{xy} % regular call, writes it out the first time, acronym otherwise
+% \cglspl{xy} % same as \cgls, but plural form
+% \Gls{xy} % same as \cgls, but capitalized
+% \Glspl{xy} % same as \cglspl, but capitalized
+% \acrshort{xy} same as \gls, but always prints the short version, even if it's the first time in the document
+% \acrlong{xy} same as \gls, but always prints the long version
+% \acrfull{xy} same as \gls, but always prints the long and short version
+%
+% Usually you don't include the glossary in a paper, but for a thesis you should.
+% To do that:
+% * put \makeglossaries in the preamble
+% * call this after the first latex run: "cd build && makeglossaries main" and run latex again
+% * add \printglossary where it should be
+%
+\newacronym{awgn}{AWGN}{additive white gaussian noise}
+%
+\newacronym{ber}{BER}{bit error rate}
+%
+\newacronym{xt}{XT}{crosstalk}

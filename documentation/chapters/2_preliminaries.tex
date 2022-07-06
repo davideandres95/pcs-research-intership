@@ -1,0 +1,73 @@
+%!TEX root = ../main.tex
+\chapter{Preliminaries}\label{chap:preliminaries}
+\section{Probabilistic Constellation Shaping}
+We begin with an important result from Information theory. Under a second-moment constraint, also known as power constraint, the probability distribution which maximizes the differential entropy is the Gaussian distribution. We thus have
+\begin{align}
+\label{eqn:max_entropy_scalar}
+	h(X) \leq \dfrac{1}{2} \log \left(2 \pi e \sigma^2 \right)
+\end{align}
+where $\sigma^2 = \mathbb{E}[X^2]$, and with equality if and only if $X$ is Gaussian-distributed. More generally in the multi-dimensional case we have  
+\begin{align}
+\label{eqn:max_entropy_n}
+	h(\underline{X}) \leq \dfrac{1}{2} \log \left((2 \pi e)^n |\textbf{Q}_{\underline{X}}| \right)
+\end{align}
+where we have considered a random column vector $\underline{X}$ of dimension n, mean $\mathbb{E}[\underline{X}]= \underline{m}$ and covariance matrix
+\begin{align}
+	\textbf{Q}_{\underline{X}}  = \mathbb{E}[(\underline{X} - \underline{m})(\underline{X} - \underline{m})^\intercal]
+\end{align}
+and equality in \ref{eqn:max_entropy_n} if only if $\underline{X}$ are jointly Gaussian.\\
+Lets now consider an \cGls{awgn} channel with input $X$, of zero mean and variance $P$, noise $Z$ and output $Y$; i.e. $Y = X + Z$. Furthermore, the capacity of the \cGls{awgn} is
+\begin{align}
+\label{eqn:awgn_cap}
+	C(P) &= \max\limits_{P_X:\mathbb{E}[X^2] \leq P} \mathbb{I}(X;Y)\\
+	& = \max\limits_{P_X:\mathbb{E}[X^2] \leq P}[h(Y) - h(Y \vert X)]\\
+	& = \dfrac{1}{2} \log (2 \pi e (P+N)) - \dfrac{1}{2} \log (2 \pi e N)\\
+	& = \dfrac{1}{2} \log \left(1 + \dfrac{P}{N} \right). 
+\end{align}
+We can analyse the mutual information
+\begin{align}
+\label{eqn:MI}
+	\mathbb{I}(X;Y) = h(Y) - h(Y \vert X)
+\end{align}
+in two parts, the differential entropy of the output and the conditional differential entropy of the output given the input.
+We expand the second term as
+\begin{align}
+	h(Y \vert X) &= h(Y - X \vert X) \\
+	& = h(Z \vert X)\\
+	& = h(Z) = \dfrac{1}{2} \log \left(2 \pi e \sigma^2 \right)
+\end{align}
+and observe that the term $h(Y \vert X)$ does not depend on how $X$ is distributed. In contrast, $h(y)$ does depend on how $X$ is distributed by
+\begin{align}
+	p_Y(y) = \int_{-\infty}^{\infty} p_X(X)p_Z(y -x) \,dx = (p_X \star p_Z)(y).
+\end{align}
+To circumvent the fact that it is difficult to find a closed-form expression of $h(Y)$, we denote the Gaussian distribution as $p_G$ and make use of the information divergence as
+\begin{align}
+\label{eqn:hy_ce}
+	h(Y) \overset{\text{(a)}}{=}  h(Y_G) - \mathbb{D}(p_Y \Vert p_G)
+\end{align}
+where (a) arises from the fact that $\mathbb{X}(p_X \Vert p_G) = h(Y_G)$ if and only if $p_X$ has zero mean and variance P as $p_G$. \ref{eqn:hy_ce} is very useful as it allows us to express the differential entropy of the output in terms of the difference between $p_G$ and any other distribution by means of the cross entropy.
+%\begin{align}
+%	\mathbb{X}(p_X \Vert p_G) = h(X) + \mathbb{D}(p_X \Vert p_G)
+%\end{align}
+Now we can rewrite \ref{eqn:MI} as
+\begin{align}
+	\mathbb{I}(X;Y) &= h(Y) - h(Y \vert X)\\
+	& = h(Y) - h(Z)\\
+	& = h(Y_G) - \mathbb{D}(p_Y \Vert p_G) - h(Z)\\
+	& = [h(Y_G) - h(Z)] - \mathbb{D}(p_Y \Vert p_G)\\
+	& = C(P/\sigma^2) - \mathbb{D}(p_Y \Vert p_G)
+\end{align}
+This last result indicates that the loss of MI when using a distribution $P_X$ different than $P_G$ is the informational divergence $\mathbb{D}(p_Y \Vert p_G)$.\\
+We would like now to understand how far a uniform distribution is from \ref{eqn:max_entropy_scalar}. To do this we will follow the approach presented in \cite{Boecherer_CM} to lower bound the MI. Start by defining $X_U$ as a uniformly distributed input on the interval $[-A, A]$ where A is carefully chosen so that $\mathbb{E}[{X_U}^2] = P$. The corresponding output is $Y_U$ and we proceed
+\begin{align}
+	\mathbb{I}(X_U;Y_U) &= C(snr) - \mathbb{D}(p_{Y_U} \Vert p_{Y_G})\\
+	& \geq C(snr) - \mathbb{D}(p_{X_U} \Vert p_{X_G})\\
+	& = C(snr) -[h(X_G) - h(X_U)]\\
+	& = C(snr) - \dfrac{1}{2} \log_{2} \left(\dfrac{\pi e}{6}\right).
+\end{align}
+
+\includegraphics[scale=1][width=\paperwidth]{figs/capacity_gap.png} 
+
+
+
+
