@@ -1,7 +1,14 @@
 %!TEX root = ../main.tex
 \chapter{Preliminaries}\label{chap:preliminaries}
 \section{Probabilistic Constellation Shaping}
-We begin with an important result from Information theory. Under a second-moment constraint, also known as power constraint, the probability distribution which maximizes the differential entropy is the Gaussian distribution. We thus have
+In this section our goal is to present the capacity limitations of the commonly used \cGls{ask} and \cGls{qam} modulation schemes. These schemes are penalized for two reasons:
+\begin{enumerate}
+\item They use uniform probability densities.
+\item The constellation points are equidistant.
+\end{enumerate}
+In the following we explain the nature of these penalties.
+\subsection{Introduction}
+We begin with an important result from Information theory. Under a second-moment constraint, also known as power constraint, the probability distribution which maximizes the differential entropy is the Gaussian distribution, $p_G$. We thus have
 \begin{align}
 \label{eqn:max_entropy_scalar}
 	h(X) \leq \dfrac{1}{2} \log \left(2 \pi e \sigma^2 \right)
@@ -40,7 +47,7 @@ and observe that the term $h(Y \vert X)$ does not depend on how $X$ is distribut
 \begin{align}
 	p_Y(y) = \int_{-\infty}^{\infty} p_X(X)p_Z(y -x) \,dx = (p_X \star p_Z)(y).
 \end{align}
-To circumvent the fact that it is difficult to find a closed-form expression of $h(Y)$, we denote the Gaussian distribution as $p_G$ and make use of the information divergence as
+To circumvent the fact that it is difficult to find a closed-form expression of $h(Y)$, we make use of the information divergence as
 \begin{align}
 \label{eqn:hy_ce}
 	h(Y) \overset{\text{(a)}}{=}  h(Y_G) - \mathbb{D}(p_Y \Vert p_G)
@@ -55,19 +62,65 @@ Now we can rewrite \ref{eqn:MI} as
 	& = h(Y) - h(Z)\\
 	& = h(Y_G) - \mathbb{D}(p_Y \Vert p_G) - h(Z)\\
 	& = [h(Y_G) - h(Z)] - \mathbb{D}(p_Y \Vert p_G)\\
-	& = C(P/\sigma^2) - \mathbb{D}(p_Y \Vert p_G)
+	& = C(P/\sigma^2) - \mathbb{D}(p_Y \Vert p_G)  \label{eq:C_minus_D}
 \end{align}
 This last result indicates that the loss of MI when using a distribution $P_X$ different than $P_G$ is the informational divergence $\mathbb{D}(p_Y \Vert p_G)$.\\
-We would like now to understand how far a uniform distribution is from \ref{eqn:max_entropy_scalar}. To do this we will follow the approach presented in \cite{Boecherer_CM} to lower bound the MI. Start by defining $X_U$ as a uniformly distributed input on the interval $[-A, A]$ where A is carefully chosen so that $\mathbb{E}[{X_U}^2] = P$. The corresponding output is $Y_U$ and we proceed
+
+\subsection{Capacity Gap for Uniform Continuous Input}
+We would like now to understand how far a uniform distribution is from \ref{eqn:max_entropy_scalar}. To do this, we will follow the approach presented in \cite{Boecherer_CM} to lower bound the MI. Start by defining $X_u$ as a uniformly distributed input on the interval $[-A, A]$ where A is carefully chosen so that $\mathbb{E}[{X_u}^2] = P$. The corresponding output is $Y_u$ and we proceed
 \begin{align}
-	\mathbb{I}(X_U;Y_U) &= C(snr) - \mathbb{D}(p_{Y_U} \Vert p_{Y_G})\\
-	& \geq C(snr) - \mathbb{D}(p_{X_U} \Vert p_{X_G})\\
-	& = C(snr) -[h(X_G) - h(X_U)]\\
-	& = C(snr) - \dfrac{1}{2} \log_{2} \left(\dfrac{\pi e}{6}\right).
+	\mathbb{I}(X_u;Y_u) &= C(\text{snr}) - \mathbb{D}(p_{Y_u} \Vert p_{Y_G})\\
+	& \geq C(\text{snr}) - \mathbb{D}(p_{X_u} \Vert p_{X_G})\\
+	& = C(\text{snr}) -[h(X_G) - h(X_u)]\\
+	& = C(\text{snr}) - \dfrac{1}{2} \log_{2} \left(\dfrac{\pi e}{6}\right).
+	\label{eqn:gap}
+\end{align}
+In figure \ref{fig:capacity_gap} we display the derived lower bound and observe that the capacity loss because of using a uniform input density is never more than $\dfrac{1}{2}\log_2\dfrac{\pi e}{6}$ independent of the \cGls{snr}.
+\begin{figure}
+	\includegraphics[width=\textwidth]{figs/capacity_gap.png}
+	\caption{AWGN channel capacity gap.}
+    \label{fig:capacity_gap}
+\end{figure}
+To show that the shaping gap is tight, it is necessary to proof an upper bound for $\mathbb{I}(X_u;Y_u)$ that approaches \ref{eqn:gap} with increasing \cGls{snr}. We refer the reader to \cite{Boecherer_CM}, section 4.3, for this proof.
+\subsection{Uniform Discrete Input Bound}
+We now show the penalty received for the use of an equidistant M-\cGls{ask} constellation. We denote the channel input as
+\begin{align}
+	\mathcal{X} = \{\pm1, \pm 3,\dots, (M-1)\}.
+\end{align}
+\begin{theorem}[Uniform Discrete Input Bound]
+\label{th:uniform_discrete_input_bound}
+The mutual information by $X_M$ is lowered bounded by
+\begin{align}
+\mathbb{I}(X_M;Y_M) &\geq \dfrac{1}{2} \log_2 \left( \dfrac{M^2}{M^2 -1}\right) - \dfrac{1}{2} \log_2 \left[2\pi e\left( \dfrac{P}{M^2 -1}+ \dfrac{P}{1+P/\sigma^2}\right)\right]\\
+& < C(\text{snr}) - \dfrac{1}{2} \log_{2} \left(\dfrac{\pi e}{6}\right) - \dfrac{1}{2} \log_2 \left[1 +\left(\dfrac{2^{C(\text{snr})}}{M}\right)^2\right]\\
+& < C(\text{snr}) - \text{Penalty}(\text{Uniform dist.}) - \text{Penalty}(\text{Equidistant dist.})
+\end{align}
+where $\text{snr} = P/\sigma^2$.
+\end{theorem}
+We refer the reader to \cite{Boecherer_CM}, section 4.5, for the proof.
+Theorem \ref{th:uniform_discrete_input_bound} shows our goal, namely that both the usage of a uniform distribution and an equidistant constellation penalizes the capacity. We can additionally compute the relation between the constellation size, $M$, and $C(\text{snr})$ so that the resulting mutual information is within a constant gap of capacity. To make this result even more attractive, we increase the constraint for the gap to match the order of the distribution loss (0.255 bits). We obtain
+\begin{align}
+	- \dfrac{1}{2} \log_2 \left[1 +\left(\dfrac{2^{C(\text{snr})}}{M}\right)^2\right] \leq - \dfrac{\log_2 e}{2} \left(\dfrac{2^{C(\text{snr})}}{M}\right)^2 = \dfrac{1}{4}\\
+	\Leftrightarrow M = 2^{C(\text{snr}) + \tfrac{1}{2}+\tfrac{1}{2} \log_2 \log_2 e}
+\end{align}
+by using $\log_e(x)\leq (1-x)$. So if 
+\begin{align}
+	\log_2 M \approx C(\text{snr}) +0.77,
+\end{align}
+then the mutual information is within 0.5 bit of capacity.
+
+% Write about Maxwel-Boltxman distributions...
+\subsection{PAS architecure}
+
+\section{Autoencoders}
+In this section we present the basics of autoencoders in the context of \cGls{dl} and communication systems, which was pioneered in \ref{O’Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.). To find such representations and the corresponding mappings $\textbf{x}$ to $\textbf{y}$ we train deep \cglspl{nn}. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is particularly interesting for training over channels without a mathematically tractable model. A representation of an autoencoder system is shown in Figure \ref{}.
+
+To find fitting sets of parameters \textbf{$\theta$}, the most used algorithm is \cGls{sgd} which starts with a random set of initial values and then updates \textbf{$\theta$} with each iteration as
+\begin{align}
+	\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} L(\theta_{old})
 \end{align}
 
-\includegraphics[scale=1][width=\paperwidth]{figs/capacity_gap.png} 
+One particular requirement for using \cGls{sgd} to train the autoencoders is that the loss gradient needs to be backpropagated
+all the way through receiver and channel to the transmitter. Otherwise, the transmitter parameters cannot be updated. This in turn means, that channel and receiver must be available as differentiable functions during training.
 
-
-
-
+We can now set up the problem which we would like to address in this work. Namely, to train a deep \cGls{nn}-based autoencoder system to find a parametric distribution $p_{\theta}(s)$. By maximizing the \cGls{mi} during training, the output distribution must satisfy \ref{eq:C_minus_D}, and thus, approach the channel capacity.
