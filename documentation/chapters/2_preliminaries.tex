@@ -52,10 +52,8 @@ To circumvent the fact that it is difficult to find a closed-form expression of 
 \label{eqn:hy_ce}
 	h(Y) \overset{\text{(a)}}{=}  h(Y_G) - \mathbb{D}(p_Y \Vert p_G)
 \end{align}
-where (a) arises from the fact that $\mathbb{X}(p_X \Vert p_G) = h(Y_G)$ if and only if $p_X$ has zero mean and variance P as $p_G$. \ref{eqn:hy_ce} is very useful as it allows us to express the differential entropy of the output in terms of the difference between $p_G$ and any other distribution by means of the cross entropy.
-%\begin{align}
-%	\mathbb{X}(p_X \Vert p_G) = h(X) + \mathbb{D}(p_X \Vert p_G)
-%\end{align}
+where (a) arises from the fact that $\mathbb{X}(p_X \Vert p_G) = h(Y_G)$ if and only if $p_X$ has zero mean and variance P as $p_G$. \ref{eqn:hy_ce} is very useful as it allows us to express the differential entropy of the output in terms of the difference between $p_G$ and any other distribution by means of the cross entropy. 
+
 Now we can rewrite \ref{eqn:MI} as
 \begin{align}
 	\mathbb{I}(X;Y) &= h(Y) - h(Y \vert X)\\
@@ -64,7 +62,7 @@ Now we can rewrite \ref{eqn:MI} as
 	& = [h(Y_G) - h(Z)] - \mathbb{D}(p_Y \Vert p_G)\\
 	& = C(P/\sigma^2) - \mathbb{D}(p_Y \Vert p_G)  \label{eq:C_minus_D}
 \end{align}
-This last result indicates that the loss of MI when using a distribution $P_X$ different than $P_G$ is the informational divergence $\mathbb{D}(p_Y \Vert p_G)$.\\
+This last result indicates that the loss of MI when using a distribution $P_X$ different than $P_G$ is the informational divergence $\mathbb{D}(p_Y \Vert p_G)$. In other words, if the gaussian distribution is not used, the capacity penalty is characterized by $\mathbb{D}(p_Y \Vert p_G)$.\\
 
 \subsection{Capacity Gap for Uniform Continuous Input}
 We would like now to understand how far a uniform distribution is from \ref{eqn:max_entropy_scalar}. To do this, we will follow the approach presented in \cite{Boecherer_CM} to lower bound the MI. Start by defining $X_u$ as a uniformly distributed input on the interval $[-A, A]$ where A is carefully chosen so that $\mathbb{E}[{X_u}^2] = P$. The corresponding output is $Y_u$ and we proceed
