@@ -1,14 +1,14 @@
 %!TEX root = ../main.tex
 \chapter{Preliminaries}\label{chap:preliminaries}
 \section{Probabilistic Constellation Shaping}
-In this section our goal is to present the capacity limitations of the commonly used \cGls{ask} and \cGls{qam} modulation schemes. These schemes are penalized for two reasons:
+In this section our goal is to present the capacity limitations of the commonly used \cgls{ask} and \cgls{qam} modulation schemes. These schemes are penalized for two reasons:
 \begin{enumerate}
 \item They use uniform probability densities.
 \item The constellation points are equidistant.
 \end{enumerate}
 In the following we explain the nature of these penalties.
 \subsection{Introduction}
-We begin with an important result from Information theory. Under a second-moment constraint, also known as power constraint, the probability distribution which maximizes the differential entropy is the Gaussian distribution, $p_G$. We thus have
+We begin with an important result from Information theory. Under a second-moment constraint, also known as power constraint, the probability distribution which maximizes the differential entropy is the Gaussian distribution, denoted with $p_G$. We thus have
 \begin{align}
 \label{eqn:max_entropy_scalar}
 	h(X) \leq \dfrac{1}{2} \log \left(2 \pi e \sigma^2 \right)
@@ -22,8 +22,26 @@ where we have considered a random column vector $\underline{X}$ of dimension n, 
 \begin{align}
 	\textbf{Q}_{\underline{X}}  = \mathbb{E}[(\underline{X} - \underline{m})(\underline{X} - \underline{m})^\intercal]
 \end{align}
-and equality in \ref{eqn:max_entropy_n} if only if $\underline{X}$ are jointly Gaussian.\\
-Lets now consider an \cGls{awgn} channel with input $X$, of zero mean and variance $P$, noise $Z$ and output $Y$; i.e. $Y = X + Z$. Furthermore, the capacity of the \cGls{awgn} is
+and equality in (\ref{eqn:max_entropy_n}) if only if the elements of $\underline{X}$ are jointly Gaussian.\\
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+    \node(src){};
+    \node[circle, draw, inner sep=0cm]at (4,0) (plus){$+$};
+	
+	\node at (4,1.5)(z){$Z\sim\mathcal{N}(0,N)$};
+
+	\draw[-latex] (src) --  (plus) node[midway,above] {$X\sim\mathcal{N}(0, P)$};
+	\draw[-latex] (plus) -- node[midway,above] {$Y$} (6,0);	
+	
+	\draw[-latex](z)--(plus);
+\end{tikzpicture}
+\end{figure}
+
+Lets now consider an \cgls{awgn} channel with Gaussian input $X$, of zero mean and variance $P$; Gaussian noise $Z$, of zero mean and variance $N$; and output $Y$; i.e. $Y = X + Z$. %A visual representation of the \cgls{awgn} channel is provided in Figure \ref{}.
+
+Furthermore, the capacity of the \cgls{awgn} is
 \begin{align}
 \label{eqn:awgn_cap}
 	C(P) &= \max\limits_{P_X:\mathbb{E}[X^2] \leq P} \mathbb{I}(X;Y)\\
@@ -31,7 +49,7 @@ Lets now consider an \cGls{awgn} channel with input $X$, of zero mean and varian
 	& = \dfrac{1}{2} \log (2 \pi e (P+N)) - \dfrac{1}{2} \log (2 \pi e N)\\
 	& = \dfrac{1}{2} \log \left(1 + \dfrac{P}{N} \right). 
 \end{align}
-We can analyse the mutual information
+We can express the mutual information
 \begin{align}
 \label{eqn:MI}
 	\mathbb{I}(X;Y) = h(Y) - h(Y \vert X)
@@ -43,7 +61,7 @@ We expand the second term as
 	& = h(Z \vert X)\\
 	& = h(Z) = \dfrac{1}{2} \log \left(2 \pi e \sigma^2 \right)
 \end{align}
-and observe that the term $h(Y \vert X)$ does not depend on how $X$ is distributed. In contrast, $h(y)$ does depend on how $X$ is distributed by
+and observe that the term $h(Y \vert X)$ does not depend on how $X$ is distributed. In contrast, $h(Y)$ does depend on how $X$ is distributed by
 \begin{align}
 	p_Y(y) = \int_{-\infty}^{\infty} p_X(X)p_Z(y -x) \,dx = (p_X \star p_Z)(y).
 \end{align}
@@ -52,7 +70,7 @@ To circumvent the fact that it is difficult to find a closed-form expression of 
 \label{eqn:hy_ce}
 	h(Y) \overset{\text{(a)}}{=}  h(Y_G) - \mathbb{D}(p_Y \Vert p_G)
 \end{align}
-where (a) arises from the fact that $\mathbb{X}(p_X \Vert p_G) = h(Y_G)$ if and only if $p_X$ has zero mean and variance P as $p_G$. \ref{eqn:hy_ce} is very useful as it allows us to express the differential entropy of the output in terms of the difference between $p_G$ and any other distribution by means of the cross entropy. 
+where (a) arises from the fact that $\mathbb{X}(p_X \Vert p_G) = h(Y_G)$ if and only if $p_X$ has zero mean and variance P as $p_G$. (\ref{eqn:hy_ce}) is very useful as it allows us to express the differential entropy of the output in terms of the information divergence between $p_G$ and any other distribution by means of the cross entropy. 
 
 Now we can rewrite \ref{eqn:MI} as
 \begin{align}
@@ -60,12 +78,27 @@ Now we can rewrite \ref{eqn:MI} as
 	& = h(Y) - h(Z)\\
 	& = h(Y_G) - \mathbb{D}(p_Y \Vert p_G) - h(Z)\\
 	& = [h(Y_G) - h(Z)] - \mathbb{D}(p_Y \Vert p_G)\\
-	& = C(P/\sigma^2) - \mathbb{D}(p_Y \Vert p_G)  \label{eq:C_minus_D}
+	& = C(P/\sigma^2) - \mathbb{D}(p_Y \Vert p_G).
+\label{eq:C_minus_D}
 \end{align}
 This last result indicates that the loss of MI when using a distribution $P_X$ different than $P_G$ is the informational divergence $\mathbb{D}(p_Y \Vert p_G)$. In other words, if the gaussian distribution is not used, the capacity penalty is characterized by $\mathbb{D}(p_Y \Vert p_G)$.\\
 
 \subsection{Capacity Gap for Uniform Continuous Input}
-We would like now to understand how far a uniform distribution is from \ref{eqn:max_entropy_scalar}. To do this, we will follow the approach presented in \cite{Boecherer_CM} to lower bound the MI. Start by defining $X_u$ as a uniformly distributed input on the interval $[-A, A]$ where A is carefully chosen so that $\mathbb{E}[{X_u}^2] = P$. The corresponding output is $Y_u$ and we proceed
+\begin{figure}[ht!]
+\centering
+\begin{tikzpicture}
+    \node(src){};
+    \node[circle, draw, inner sep=0cm]at (4,0) (plus){$+$};
+	
+	\node at (4,1.5)(z){$Z\sim\mathcal{N}(0,N)$};
+
+	\draw[-latex] (src) --  (plus) node[midway,above] {$X\sim\mathcal{U}\left[-A, A\right]$};
+	\draw[-latex] (plus) -- node[midway,above] {$Y$} (6,0);	
+	
+	\draw[-latex](z)--(plus);
+\end{tikzpicture}
+\end{figure}
+We would like now to understand how far a uniform distribution is from (\ref{eqn:max_entropy_scalar}). To do this, we will follow the approach presented in \cite{BoechererCM} to lower bound the MI. Start by defining $X_u$ as a uniformly distributed input on the interval $[-A, A]$ where A is carefully chosen so that $\mathbb{E}[{X_u}^2] = P$. The corresponding output is $Y_u$ and we proceed
 \begin{align}
 	\mathbb{I}(X_u;Y_u) &= C(\text{snr}) - \mathbb{D}(p_{Y_u} \Vert p_{Y_G})\\
 	& \geq C(\text{snr}) - \mathbb{D}(p_{X_u} \Vert p_{X_G})\\
@@ -73,15 +106,15 @@ We would like now to understand how far a uniform distribution is from \ref{eqn:
 	& = C(\text{snr}) - \dfrac{1}{2} \log_{2} \left(\dfrac{\pi e}{6}\right).
 	\label{eqn:gap}
 \end{align}
-In figure \ref{fig:capacity_gap} we display the derived lower bound and observe that the capacity loss because of using a uniform input density is never more than $\dfrac{1}{2}\log_2\dfrac{\pi e}{6}$ independent of the \cGls{snr}.
+In Figure \ref{fig:capacity_gap} we display the derived lower bound and observe that the capacity loss, originated from the use of a uniform input density, is never more than $\dfrac{1}{2}\log_2\dfrac{\pi e}{6}$ independent of the \cgls{snr}.
 \begin{figure}
 	\includegraphics[width=\textwidth]{figs/capacity_gap.png}
-	\caption{AWGN channel capacity gap.}
+	\caption{AWGN channel capacity gap. The orange line indicates the upper capacity bound for any uniformly distributed constellation.}
     \label{fig:capacity_gap}
 \end{figure}
-To show that the shaping gap is tight, it is necessary to proof an upper bound for $\mathbb{I}(X_u;Y_u)$ that approaches \ref{eqn:gap} with increasing \cGls{snr}. We refer the reader to \cite{Boecherer_CM}, section 4.3, for this proof.
+To show that the shaping gap is tight, it is necessary to proof an upper bound for $\mathbb{I}(X_u;Y_u)$ that approaches \ref{eqn:gap} with increasing \cgls{snr}. We refer the reader to \cite{BoechererCM}, Section 4.3, for this proof.
 \subsection{Uniform Discrete Input Bound}
-We now show the penalty received for the use of an equidistant M-\cGls{ask} constellation. We define the constellation points as
+We now show the penalty received for the use of an equidistant M-\cgls{ask} constellation. We define the constellation points as
 \begin{align}
 	\mathcal{X} = \{\pm\Delta 1, \pm\Delta 3,\dots, \Delta(M-1)\},
 \end{align}
@@ -99,8 +132,8 @@ The mutual information achieved by $X_M$ is lowered bounded by
 \end{align}
 where $\text{snr} = P/\sigma^2$.
 \end{theorem}
-We refer the reader to \cite{Boecherer_CM}, section 4.5, for the proof.
-Theorem \ref{th:uniform_discrete_input_bound} shows our goal, namely that both the usage of a uniform distribution and an equidistant constellation penalizes the capacity. We can additionally compute the relation between the constellation size, $M$, and $C(\text{snr})$ so that the resulting mutual information is within a constant gap of capacity. To make this result even more attractive, we increase the constraint for the gap to match the order of the distribution loss (0.255 bits). We obtain
+We refer the reader to \cite{BoechererCM}, section 4.5, for the proof.
+Theorem \ref{th:uniform_discrete_input_bound} shows our goal, namely that both the usage of a uniform distribution and an equidistant constellation penalizes the capacity. We can additionally compute the relation between the constellation size, $M$, and $C(\text{snr})$ so that the resulting \cgls{mi} is within a constant gap of capacity. To make this result even more attractive, we increase the constraint for the gap to match the order of the distribution loss (0.255 bits). We obtain
 \begin{align}
 	- \dfrac{1}{2} \log_2 \left[1 +\left(\dfrac{2^{C(\text{snr})}}{M}\right)^2\right] \leq - \dfrac{\log_2 e}{2} \left(\dfrac{2^{C(\text{snr})}}{M}\right)^2 = \dfrac{1}{4}\\
 	\Leftrightarrow M = 2^{C(\text{snr}) + \tfrac{1}{2}+\tfrac{1}{2} \log_2 \log_2 e}
@@ -113,17 +146,17 @@ then the mutual information is within 0.5 bit of capacity.
 
 % Write about Maxwel-Boltxman distributions...
 \subsection{Capacity-achieving distributions}
-We now address the question of finding the discrete probability distribution which maximizes the capacity. Such distribution should be free of the $ \dfrac{1}{2} \log_{2} \left(\dfrac{\pi e}{6}\right)$ penalty. We use again an \cGls{ask} constellation with M signal points ( in practice, M is a power of 2) given by 
+We now address the question of finding the discrete probability distribution which maximizes the capacity. Such distribution should be free of the $ \dfrac{1}{2} \log_{2} \left(\dfrac{\pi e}{6}\right)$ penalty. We use again an \cgls{ask} constellation with M signal points ( in practice, M is a power of 2) given by 
 \begin{align}
 	\mathcal{X} = \{\pm 1, \pm 3,\dots, (M-1)\}.
 \end{align}
 
-Let $X$ be a random variable with distribution $P_X$ over $\mathcal{X}$. As before, we scale $X$ by a $\Delta > 0$ and the resulting input/output relation for an \cGls{awgn} channel becomes
+Let $X$ be a random variable with distribution $P_X$ over $\mathcal{X}$. As before, we scale $X$ by a $\Delta > 0$ and the resulting input/output relation for an \cgls{awgn} channel becomes
 \begin{align}
 	Y = \Delta X + Z
 \end{align}
 
-In consequence, the \cGls{mi} of the channel input and output is 
+In consequence, the \cgls{mi} of the channel input and output is 
 \begin{align}
 	\mathbb{I}(\Delta X; Y) &= \mathbb{I}(\Delta X; \Delta X + Z)\\
 	&= \mathbb{I}(\Delta X; \Delta X + Z)
@@ -140,7 +173,7 @@ Formally, our optimization problem is the following
 	C(P/\sigma^2) &= \max\limits_{\Delta, P_X :\mathbb{E}[(\Delta X)^2] \leq P} \mathbb{I}(X;\Delta X+Z).
 \end{align}
 
-Maximizing the mutual information $\mathbb{I}(X;\Delta X+Z)$ both over the scaling of the constellation points and the input distribution requires a relatively high amount of power. Instead, as shown in \cite{Boecherer_CM}, section 5.3, we will use a suboptimal input distribution which follows from maximizing the input entropy.
+Maximizing the mutual information $\mathbb{I}(X;\Delta X+Z)$ both over the scaling of the constellation points and the input distribution requires a relatively high amount of power. Instead, as shown in \cite{BoechererCM}, section 5.3, we will use a suboptimal input distribution which follows from maximizing the input entropy.
 
 We expand the mutual information as
 \begin{align}
@@ -150,7 +183,7 @@ and fixing $\Delta$, we select the input distribution $P_{X_\Delta}$ that maximi
 \begin{align}
 	P_{X_\Delta} &= \argmax\limits_{P_X:\mathbb{E}[(\Delta X)^2] \leq P} \mathbb{H}(X).
 \end{align}
-Without the discrete constraint, the solution would be a Gaussian distribution. For this reason we explore sampled Gaussian distributions, also known as \cGls{mb} distributions. For each $\mathcal{X} = \{\pm1, \pm 3,\dots, (M-1)\}$, define
+Without the discrete constraint, the solution would be a Gaussian distribution. For this reason we explore sampled Gaussian distributions, also known as \cgls{mb} distributions. For each $\mathcal{X} = \{\pm1, \pm 3,\dots, (M-1)\}$, define
 \begin{align}
 	P_{X_v}(x_i) &= A_{\nu}e^{-\nu{x_i}^2},\text{  } A_{\nu} = \dfrac{1}{\sum\limits_{i=1}^{M}e^{-\nu{x_i}^2}} 
 \end{align}
@@ -162,7 +195,7 @@ P_{X_\Delta}(x_i) = P_{X_\nu}(x_i) \text{ with } \nu : \mathbb{E}[(\Delta X_{\nu
 
 \begin{proof}
 Consider the finite set $\mathcal{X} = {x_1, x_2, \dots , x_n}$ . Let $f$ be a function that
-assigns to each $x_i \in \mathcal{X}$ a positive cost $f(x_i) > 0$. Define the \cGls{mb} distribution
+assigns to each $x_i \in \mathcal{X}$ a positive cost $f(x_i) > 0$. Define the \cgls{mb} distribution
 \begin{align}
 	P_{X_v}(x_i) &= A_{\nu}e^{-\nu f(x_i)},\text{  } A_{\nu} = \dfrac{1}{\sum\limits_{i=1}^{M}e^{-\nu f(x_i)}} 
 \end{align}	
@@ -175,20 +208,20 @@ Let $P_X$ be some distribution on $\mathcal{X}$ with $ \mathbb{E}[f(X)] = P $. C
 	&= -\mathbb{H}(X) + \mathbb{H}(X_{\nu}) \\
 	\mathbb{H}(X) &\leq \mathbb{H}(X_{\nu})
 \end{align}
-where the marked step follows since both distributions produce the same moments for $log(P_{X_{\nu}}(x))$.
+where the (*) marked step follows since both distributions produce the same moments for $log(P_{X_{\nu}}(x))$.
 \end{proof}
 
 
 	
 \section{Autoencoders}
-In this section we present the basics of autoencoders in the context of \cGls{dl} and communication systems, which was pioneered in \ref{O’Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.). To find such representations and the corresponding mappings $\textbf{x}$ to $\textbf{y}$ we train deep \cglspl{nn}. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is particularly interesting for training over channels without a mathematically tractable model. A representation of an autoencoder system is shown in Figure \ref{}.
+In this section we present the basics of autoencoders in the context of \cgls{dl} and communication systems, which was pioneered in \cite{O'Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.). To find such representations and the corresponding mappings $\textbf{x}$ to $\textbf{y}$ we train deep \cglspl{nn}. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is particularly interesting for training over channels without a mathematically tractable model. A representation of an autoencoder system is shown in Figure \ref{}.
 
-To find fitting sets of parameters \textbf{$\theta$}, the most used algorithm is \cGls{sgd} which starts with a random set of initial values and then updates \textbf{$\theta$} with each iteration as
+To find fitting sets of parameters \textbf{$\theta$}, the most used algorithm is \cgls{sgd} which starts with a random set of initial values and then updates \textbf{$\theta$} with each iteration as
 \begin{align}
 	\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} L(\theta_{old})
 \end{align}
 
-One particular requirement for using \cGls{sgd} to train the autoencoders is that the loss gradient needs to be backpropagated
+One particular requirement for using \cgls{sgd} to train the autoencoders is that the loss gradient needs to be backpropagated
 all the way through receiver and channel to the transmitter. Otherwise, the transmitter parameters cannot be updated. This in turn means, that channel and receiver must be available as differentiable functions during training.
 
-We can now set up the problem which we would like to address in this work. Namely, to train a deep \cGls{nn}-based autoencoder system to find a parametric distribution $p_{\theta}(s)$. By maximizing the \cGls{mi} during training, the output distribution must satisfy \ref{eq:C_minus_D}, and thus, approach the channel capacity.
+We can now set up the problem which we would like to address in this work. Namely, to train a deep \cgls{nn}-based autoencoder system to find a parametric distribution $p_{\theta}(s)$. By maximizing the \cgls{mi} during training, the output distribution must satisfy \ref{eq:C_minus_D}, and thus, approach the channel capacity.

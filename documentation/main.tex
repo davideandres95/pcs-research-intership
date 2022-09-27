@@ -1,14 +1,23 @@
 % Load the institute for communications engineering document class
-\documentclass[chair=lnt	]{ICEthesis} % options for the chair are lnt (default), lut or cod
+\documentclass[chair=lnt]{ICEthesis} % options for the chair are lnt (default), lut or cod
 
 \input{utils/packages}
 \input{utils/misc}
 \input{utils/acronyms}
 \usepackage{physics}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage[backend=bibtex,style=ieee-alphabetic,natbib=true, maxcitenames=2]{biblatex} %added
+\addbibresource{refs.bib}
+\usetikzlibrary{arrows}
+\usetikzlibrary{shapes.arrows}
+\usetikzlibrary{fit}
 \newtheorem{theorem}{Theorem}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
+
+\makeglossaries
 
 \begin{document}
 % ##########
@@ -84,9 +93,10 @@
 
 % ### bibliography
 % Use IEEE DIN 1505 style for bibliography
-\bibliographystyle{IEEEtranSA}
+%\bibliographystyle{IEEEtranSA}
 %\nocite{*} % include all references without checking (don't do this)
-\bibliography{refs}
+%\bibliography{refs}
+\printbibliography
 \end{document}
 
 %
