@@ -214,8 +214,22 @@ where the (*) marked step follows since both distributions produce the same mome
 
 	
 \section{Autoencoders}
-In this section we present the basics of autoencoders in the context of \cgls{dl} and communication systems, which was pioneered in \cite{O'Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.). To find such representations and the corresponding mappings $\textbf{x}$ to $\textbf{y}$ we train deep \cglspl{nn}. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is particularly interesting for training over channels without a mathematically tractable model. A representation of an autoencoder system is shown in Figure \ref{}.
+\subsection{Introduction}
+In this section we present the basics of autoencoders in the context of \cgls{dl} and communication systems, which was pioneered in \cite{O'Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.). To find such representations and the corresponding mappings $\textbf{x}$ to $\textbf{y}$ we train deep \cglspl{nn}. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is particularly interesting for training over channels without a mathematically tractable model.
 
+\subsection{Feed-Forward Neural Networks}
+\cGlspl{ffnn} are structures capable of transforming the input vector $\bold{v_0} = (v_{0,1} \dots v_{0,M})$ into an output vector $\bold{v_k} = (v_{K,1} \dots v_{K,n})$, i.e., $\bold{v_K}=f_{\text{NN}}(\bold{v_0})$. This transformation is accomplished by composing functions, which in turn are computed by layers. Using matrix notation we can express the output of each layer as
+\begin{align}
+	\vb{v_k} = g_{\text{NL},k}(\vb{W}_k\vb{v}_{k-1}+\vb{b}_k), \qquad k = 1, \dots, K,
+\end{align}
+
+where k indicates the layer index, and $g_{\text{NL},k}(\cdot)$ is a nonlinear function applied between layers. Indeed, without the nonlinear function the \cgls{ffnn} lacks the expressive power required to approximate any function \cite{HORNIK1989359}.
+
+\input{figs/neuralNetwork}
+
+\subsection{Autoencoders}
+
+\subsection{Stochastic Gradient Descent}
 To find fitting sets of parameters \textbf{$\theta$}, the most used algorithm is \cgls{sgd} which starts with a random set of initial values and then updates \textbf{$\theta$} with each iteration as
 \begin{align}
 	\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} L(\theta_{old})

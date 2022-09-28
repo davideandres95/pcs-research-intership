@@ -43,127 +43,70 @@ With this correction the optimization problem
 \end{align}
 maximizes the \cgls{mi}.
 \subsection{Autoencoder Architecture}
-\citeauthor{Stark}'s autoencoder is made up from three major blocks: sampler, modulator, and demodulator. Fig \ref{fig:starkAe} shows the complete architecture of the end-to-end system. While the modulator and demodulator blocks are similar to the proposal from \cite{O'Shea}, the simultaneous probabilistic shaping is possible thanks to the careful design of the sampler. By ensuring that the sampler mechanism is differentiable, the gradients with respect to each $p_i \in P_M$ are precise when calculated via \cgls{sgd}. In fact, the differentiability is gained by leveraging the so-called \textit{Gumbel-Softmax trick} \cite{JANG}, which circunvents the need for using the arg-max function to sample the discrete distribution $P_M$.
 
-\begin{figure}[h]
+\begin{figure}[H]
 	\includegraphics[width=\textwidth]{figs/stark_diagram.pdf}
 	\centering	
 	\caption{Proposed Autoencoder Architecture from \cite{Stark}}
 	\label{fig:starkAe}
 \end{figure}
 
+\citeauthor{Stark}'s autoencoder is made up from three major blocks: sampler, modulator, and demodulator. Fig \ref{fig:starkAe} shows the complete architecture of the end-to-end system, where the trainable parameters $p_{\theta_S}(s), f_{\theta_M} \text{ and } p_{\theta_D}(s|y)$ correspond to our $P_M, C_M, \text{ and } D$, respectively. While the modulator and demodulator blocks are similar to the proposal from \cite{O'Shea}, the simultaneous probabilistic shaping is possible thanks to the careful design of the sampler. By ensuring that the sampler mechanism is differentiable, the gradients with respect to each $p_i \in P_M$ are precise when calculated via \cgls{sgd}. In fact, the differentiability is gained by leveraging the so-called \textit{Gumbel-Softmax trick} \cite{JANG}, which circunvents the need for using the arg-max function to sample the discrete distribution $P_M$.
+
+We have implemented the end-to-end system using PyTorch \cite{PyTorch}. The sampler is made out of 2 layers. The first layer is made out of 128 units with ReLU activation, and the second layer of M units with linear activations. In the forward pass, the logit output is then processed through the Gumbel-Softmax trick and then through the straight-through estimator to produce the one-hot-encoded training set. While in the backward pass, the straight-through estimator uses the approximate one-hot vector ---the output of the Gumbel-Softmax block.  The trainable parameter of the sampler, $P_M$, is initialized to a uniform distribution.
+The modulator is made out of a single linear layer of N units followed by a normalization operation to ensure that the energy constraint of the constellation is mantained, i.e.,
+\begin{align}
+	\sum\limits_{p_i \in P_M} p_i |x_i|^2.
+\end{align}
+If only probabilistic shaping is applied, the constellation remains fixed, e.g., M-\cgls{ask}, is used. On the contrary, when geometric shaping is performed, the parameter $C_M$ corresponds to the unnormalized constellation points.
+Finally, the demodulator is made out of 3 layers. The first two layers are made out of 128 units with ReLU activations, and the third layer of M units with linear activation. The trainable parameter of the demodulator, $D$ corresponds to the \textit{a posteriori} probabilities $p(x|y)$.
+
+
+
 \subsection{Autoencoder Performance}
-We have implemented the end-to-end system using \cite{PyTorch}. First, for the 
 
+Training was performed with the Adam optimizer and the hyper-parameters of the training are: learning-rate=0.001, batch-size=10000, and number of epochs=4000.
+The resulting M-\cgls{ask} constellations for both only probabilistic and joint probabilistic and geometric shaping are presented in Figure \ref{fig:starkMASK}. Moreover the respective achieved \cgls{mi} for the corresponding M-\cgls{qam} scheme, i.e., 64-\cgls{qam}, are available in Figure \ref{fig:starkPerf} for SNR values ranging from 5dB to 22dB.
+	
 \begin{figure}[h]
-    \centering
-    \begin{tikzpicture}
-
-	\definecolor{darkgray176}{RGB}{176,176,176}
-	\definecolor{lightgray204}{RGB}{204,204,204}
-	\definecolor{steelblue31119180}{RGB}{31,119,180}
-	
-	\begin{axis}[
-	width=\textwidth,
-	legend cell align={left},
-	legend style={
-	  fill opacity=0.8,
-	  draw opacity=1,
-	  text opacity=1,
-	  at={(0.03,0.97)},
-	  anchor=north west,
-	  draw=lightgray204
-	},
-	tick align=outside,
-	tick pos=left,
-	x grid style={darkgray176},
-	xlabel={SNR in dB},
-	xmajorgrids,
-	xmin=4.2, xmax=21.8,
-	xtick style={color=black},
-	y grid style={darkgray176},
-	ylabel={bits per channel use},
-	ymajorgrids,
-	ymin=1.76962706763051, ymax=7.23593185854285,
-	ytick style={color=black}
-	]
-	\addplot [semithick, black]
-	table {%
-	5 2.0573732086068
-	6 2.31645617962626
-	7 2.58781437356203
-	8 2.86978721917029
-	9 3.16080442391302
-	10 3.4594316186373
-	11 3.76439436704286
-	12 4.07458523490543
-	13 4.38905896736305
-	14 4.70702026272884
-	15 5.02780767335052
-	16 5.3508761542486
-	17 5.67577990180488
-	18 6.00215644400198
-	19 6.32971245944191
-	20 6.65821148275179
-	21 6.98746345895592
-	};
-	\addlegendentry{AWGN Capacity}
-	\addplot [semithick, steelblue31119180]
-	table {%
-	5 2.01809546721744
-	6 2.2175518041323
-	7 2.48006287743269
-	8 2.73666019981578
-	9 2.96994524819285
-	10 3.24327265396585
-	11 3.5599180244894
-	12 3.83101129721386
-	13 4.06389271002028
-	14 4.37223116602331
-	15 4.66762749613217
-	16 4.95687064214095
-	17 5.22562719816465
-	18 5.4510408658335
-	19 5.63991104919193
-	20 5.80998181551279
-	21 5.90102244617771
-	};
-	\addlegendentry{64QAM}
-	\addplot [semithick, orange, mark=*, mark size=1.5, mark options={solid}]
-	table {%
-	5 2.0399120192814
-	6 2.27815477000743
-	7 2.545269624195
-	8 2.83913156421006
-	9 3.15282104007778
-	10 3.46721977239767
-	11 3.72686335626646
-	12 4.06197533509096
-	13 4.33772578214366
-	14 4.60597916147994
-	15 4.87677306853477
-	16 5.14192078516177
-	17 5.38382229480225
-	18 5.54814724615274
-	19 5.70199948596159
-	20 5.81331697655905
-	21 5.9123535300237
-	};
-	\addlegendentry{Learnt PCS}
-	\end{axis}
-	
-	\end{tikzpicture}
-	\caption{Mutual information learned by the probabilistic constellation shpaing on the AWGN channel.}
-	\label{fig:starkPerf}
+	\subfigure[SNR = 5dB]{
+         \scalebox{1}{\input{figs/stark_gcs_5dB.pgf}}
+         \label{subfig:stark5dB}
+    }
+    \subfigure[SNR = 12dB]{
+         \scalebox{1}{\input{figs/stark_gcs_12dB.pgf}}
+         \label{subfig:stark12dB}
+    }
+    \subfigure[SNR = 18dB]{
+         \scalebox{1}{\input{figs/stark_gcs_18dB.pgf}}
+         \label{subfig:stark18dB}
+    }
+    \caption{(a-c) Learnt ASK constellation for M=8.}
+    \label{fig:starkMASK}
 \end{figure}
-	
+
+\begin{figure}[H]
+	\centering
+	\subfigure{
+		\input{figs/stark_gcs_tikz.tex}
+		\label{subfig:starkPerf}
+	}
+	\subfigure{
+		\scalebox{0.8}{\input{figs/stark_zoom_gcs_18dB.pgf}}
+%		\input{figs/stark_gcs_18dB_tikz.tex}
+		\label{subfig:starkPerfZoom}
+	}
+    \caption{\subref{subfig:starkPerf} Mutual information learned by the PCS and GeoPCS for constellation size M=64 on the AWGN channel}.
+    \label{fig:starkPerf}
+\end{figure}
 
 
 \section{Second implementation}
-In this section we break-down the autoencoder system presented by Aref et. al. in \cite{Aref}. This approach is motivated by the fact that the implementation presented by Stark et.al. presents numerical instabilities.
+In this section we break-down the autoencoder system presented by \citet{Aref}. This novel approach calls to remove the risk of numerical instabilities present in \cite{Stark}. Such instabilities are introduced by the Gumbel-Softmax trick, required to make the sampler differentiable, and the sensitive extra hyper-parameters. The outstanding feature of this autoencoder is the hability to sample from the constellation probabilities without any approximation.
 
 \subsection{Optimization of trainable parameters}
-As we have seen in chapter \ref{chap:preliminaries}, the goal of probabilistic constellation shaping is to maximize the mutual information
+\label{sec:parameters}
+As we have seen in Chapter \ref{chap:preliminaries}, the goal of probabilistic constellation shaping is to maximize the mutual information
 \begin{align}
 	 \max_{D, P_M, C_M} \mathbb{I} \left(X , Y ; D, P_M, C_M \right) = \mathbb{H}(X) - \mathbb{X}(P_{X|Y} \Vert Q_{X|Y} ; D, P_M, C_M)
 \end{align}
@@ -246,133 +189,22 @@ Aref now indicates that the following terms can be computed via backpropagation
 while the remaining ones must be explicitely computed and added to the gradient after backpropagating. We call this step \textit{gradient correction} and it is due to the change of statistics in the sampled batch.
 
 \subsection{Autoencoder Architecture}
-\begin{figure}[h!]
-\includegraphics[width=\textwidth]{figs/aref_diagram.png}
-\centering
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=\textwidth]{figs/aref_diagram.png}
+	\caption{Proposed Autoencoder Architecture from \cite{Aref}}
+	\label{fig:arefAe}
 \end{figure}
 
+\citeauthor{Aref}'s autoencoder is made up from two major blocks: mapper and demapper. Fig \ref{fig:arefAe} shows the complete architecture of the end-to-end system, where the trainable parameters are  $P_M, C_M, \text{ and } D$. Furthermore, the mapper breaks down into the sampling and the modulation mechanism. In order to sample, a single linear layer followed by a softmax layer trains the $p_i \in P_M$. Next, to produce a training symbols batch of size B, each index $i$ is drawn about $Bp_i$ times, for $i = 1, \dots, M$. After, the indeces are randomly permuted. Note that this sampling mechanism is not differentiable and consequently, the derivatives of the loss function w.r.t to the $p_i$ will not be accurate. However, using the \textit{gradient correction} factor described in Section \ref{sec:parameters}, the gradient is adjusted during the backpropagation step. Similar to the previously presented architecture, the modulation mechanism is made of a single linear layer of M units and trainable parameters $c_i \in C_M$. It also includes a normalization layer to ensure that the power contstraints are met. Finally, the Demapper is also made of a single linear layer followed by a softmax layer. The demapper's trainable parameter, $D$ correspond to the \textit{a posteriori} probability distribution $p(x|y)$ depending on the channel model.
+
 \subsection{Autoencoder Performance}
-% This file was created with tikzplotlib v0.10.1.
+Training was performed with the Adam optimizer and the hyper-parameters of the training are: learning-rate=0.1, batch-size=10000, and number of epochs=4000.
+The resulting M-\cgls{ask} constellations for both only probabilistic and joint probabilistic and geometric shaping are presented in Figure \ref{fig:arefMASK}. Moreover the respective achieved \cgls{mi} for the corresponding M-\cgls{qam} scheme, i.e., 64-\cgls{qam}, are available in Figure \ref{fig:arefPerf} for SNR values ranging from 5dB to 22dB.
+
 \begin{figure}
-
-\begin{tikzpicture}
-
-\definecolor{darkgray176}{RGB}{176,176,176}
-\definecolor{lightgray204}{RGB}{204,204,204}
-\definecolor{steelblue31119180}{RGB}{31,119,180}
-
-\begin{axis}[
-width=\textwidth,
-legend cell align={left},
-legend style={
-  fill opacity=0.8,
-  draw opacity=1,
-  text opacity=1,
-  at={(0.03,0.97)},
-  anchor=north west,
-  draw=lightgray204
-},
-tick align=outside,
-tick pos=left,
-x grid style={darkgray176},
-xlabel={SNR in dB},
-xmajorgrids,
-xmin=4.2, xmax=21.8,
-xtick style={color=black},
-y grid style={darkgray176},
-ylabel={bits per channel use},
-ymajorgrids,
-ymin=1.7427734204131, ymax=7.23721060364844,
-ytick style={color=black}
-]
-\addplot [semithick, black]
-table {%
-5 2.0573732086068
-6 2.31645617962626
-7 2.58781437356203
-8 2.86978721917029
-9 3.16080442391302
-10 3.4594316186373
-11 3.76439436704286
-12 4.07458523490543
-13 4.38905896736305
-14 4.70702026272884
-15 5.02780767335052
-16 5.3508761542486
-17 5.67577990180488
-18 6.00215644400198
-19 6.32971245944191
-20 6.65821148275179
-21 6.98746345895592
-};
-\addlegendentry{AWGN Capacity}
-\addplot [semithick, steelblue31119180]
-table {%
-5 1.99252056510562
-6 2.22188472335438
-7 2.46783010150158
-8 2.72497762849336
-9 2.98797481594902
-10 3.26241611912443
-11 3.53780680098415
-12 3.82177960231084
-13 4.10180988838577
-14 4.3977281031029
-15 4.67794065159212
-16 4.96490024705524
-17 5.22792292071708
-18 5.44727967105006
-19 5.65395561651234
-20 5.80023460021518
-21 5.90134552221041
-};
-\addlegendentry{64QAM}
-\addplot [semithick, red, mark=*, mark size=1.5, mark options={solid}]
-table {%
-5 2.04953616842369
-6 2.28690524728333
-7 2.57595580065785
-8 2.8524662390447
-9 3.14655158452323
-10 3.44979861779587
-11 3.7504920526685
-12 4.04539311186007
-13 4.33694188522102
-14 4.62174584298044
-15 4.8859686369111
-16 5.14053322913461
-17 5.36437105698967
-18 5.54836875980705
-19 5.70036840250081
-20 5.81702285871985
-21 5.89450310672535
-};
-\addlegendentry{Learnt PCS}
-\addplot [dashed, green, mark=*, mark size=1.5, mark options={solid}]
-table {%
-5 2.054870726288148
-6 2.3113123371631734
-7 2.5950424352506007
-8 2.872956939999102
-9 3.157409537202804
-10 3.4543671649333914
-11 3.7535450886866175
-12 4.0472924882562
-13 4.348614691700384
-14 4.624498253324846
-15 4.896956264509424
-16 5.148696901605764
-17 5.369250548759946
-18 5.565256424225875
-19 5.715805221276954
-20 5.8343876030121615
-21 5.913611755097416
-};
-\addlegendentry{Learnt GeoPCS}
-\end{axis}
-
-\end{tikzpicture}
-\caption{Mutual information learned by the probabilistic constellation shpaing on the AWGN channel.}
-\label{fig:arefPerf}
+	\input{figs/aref_gcs_tikz.tex}
+	\caption{Mutual information learned by the probabilistic constellation shpaing on the AWGN channel.}
+	\label{fig:arefPerf}
 \end{figure}
 
