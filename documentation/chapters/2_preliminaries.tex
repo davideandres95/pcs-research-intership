@@ -214,28 +214,73 @@ where the (*) marked step follows since both distributions produce the same mome
 
 	
 \section{Autoencoders}
-\subsection{Introduction}
-In this section we present the basics of autoencoders in the context of \cgls{dl} and communication systems, which was pioneered in \cite{O'Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.). To find such representations and the corresponding mappings $\textbf{x}$ to $\textbf{y}$ we train deep \cglspl{nn}. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is particularly interesting for training over channels without a mathematically tractable model.
+In the following we consider \cglspl{ffnn}, an specific type of \cgls{nn}, \cgls{sgd}, and autoencoders.
 
 \subsection{Feed-Forward Neural Networks}
-\cGlspl{ffnn} are structures capable of transforming the input vector $\bold{v_0} = (v_{0,1} \dots v_{0,M})$ into an output vector $\bold{v_k} = (v_{K,1} \dots v_{K,n})$, i.e., $\bold{v_K}=f_{\text{NN}}(\bold{v_0})$. This transformation is accomplished by composing functions, which in turn are computed by layers. Using matrix notation we can express the output of each layer as
+\cGlspl{ffnn} are structures which map an input vector $\bold{v_0} = (v_{0,1} \dots v_{0,M})$ to an output vector $\bold{v_k} = (v_{K,1} \dots v_{K,N})$, i.e., $\bold{v_K}=f_{\text{NN}}(\bold{v_0})$. This transformation is accomplished by composing functions, which in turn are computed by layers. The number of layers, K, is commonly referred to as depth of the network. And each layer can be composed of an specific number of units (neurons), M, often referred to as width of the layer. A representation of this structure is
+
+\begin{figure}[H]
+	\centering
+	\input{figs/ffnn}
+\end{figure}
+
+
+Note that the width of the input and output layers must match the dimensions of the input and output vectors.\\
+Mathematically, the output of a unit is parametrized by a weigth, $\bold{w}_{k,m}$, and a bias, $b_{k,m}$, and can be expressed as
 \begin{align}
-	\vb{v_k} = g_{\text{NL},k}(\vb{W}_k\vb{v}_{k-1}+\vb{b}_k), \qquad k = 1, \dots, K,
+	v_{k,m} = g_{\text{NL},k}(\vb{v}_{k-1}\vb{w}^\top_{k,m} + b_{k,m}), \qquad k = 1, \dots, K \qquad m = 1, \dots, M.
+	\label{eqn:neuron}
+\end{align}
+Where in (\ref{eqn:neuron}), k indicates the layer index, m indicates the unit index, and $g_{\text{NL},k}(\cdot)$ is a nonlinear function, e.g., \cgls{relu}, applied between layers.
+
+\begin{figure}[H]
+\tikzstyle{unit}=[draw,shape=circle,minimum size=1.15cm]
+\centering
+\begin{tikzpicture}[shorten >=1pt,->]
+	\node[unit](p) at (2,1){$\Sigma$};
+	\node(dots) at (-0.25,1){\vdots};
+
+	\draw (2,2) node[yshift=10]{$b_{k,n}$} -- (p);
+	
+	\draw (-0.75,1.75) node[xshift=-20]{$v_{k-1,1}$} --(p);
+	\draw (-0.75,1.75) node[xshift=1.2cm]{$w_{k-1,1}$} --(p);
+	
+	\draw (-0.75,0) node[xshift=-20]{$v_{k-1,M}$} -- (p);
+	\draw (-0.75,0) node[xshift=1.2cm]{$w_{k-1,M}$} -- (p);
+	
+	\node[unit, scale=0.6](f) at (3.5,1){$g_{\text{NL},k}$};
+	
+	\draw (p) -- (f);
+	\draw (f) -- (4.5,1) node[xshift=10]{$v_{k,m}$};
+\end{tikzpicture}
+	
+\end{figure}
+Indeed, without the nonlinear function the \cgls{ffnn} lacks the expressive power required to approximate any function \cite{HORNIK1989359}.\\
+Finally, using matrix notation we can express the output of each layer as
+\begin{align}
+	\vb{v_k} = g_{\text{NL},k}(\vb{W}_k\vb{v}_{k-1}+\vb{b}_k), \qquad k = 1, \dots, K.
 \end{align}
 
-where k indicates the layer index, and $g_{\text{NL},k}(\cdot)$ is a nonlinear function applied between layers. Indeed, without the nonlinear function the \cgls{ffnn} lacks the expressive power required to approximate any function \cite{HORNIK1989359}.
-
-\input{figs/neuralNetwork}
-
-\subsection{Autoencoders}
+These structures, together with a training algorithm, help us to find parameters $\bold{W_k}$ and $\bold{b_k}$ such that $f_{\text{NN}}(\bold{v_0})$ approximates an unknown function. To this end, the algorithm receives training sets of observed pairs of the unknown function, where each pair has the form $\{$input, output$\}$.
 
 \subsection{Stochastic Gradient Descent}
-To find fitting sets of parameters \textbf{$\theta$}, the most used algorithm is \cgls{sgd} which starts with a random set of initial values and then updates \textbf{$\theta$} with each iteration as
+To find fitting sets of parameters $\{\bold{W_k}, \bold{b_k}\}$ we define a loss function,  $L(\bold{W_k} , \bold{b_k})$, that compares the current output of the \cgls{nn} with the desired output from the training set. The most used algorithm is \acrfull{sgd} which starts with a random set of initial values and then updates $\{\bold{W_k}, \bold{b_k}\}$ with each iteration as
 \begin{align}
-	\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} L(\theta_{old})
+	\boldsymbol{\theta}_{new} = \boldsymbol{\theta}_{old} + \epsilon \grad L(\boldsymbol{\theta}_{old}), \qquad \boldsymbol{\theta} \in \{\bold{W_k}, \bold{b_k}\}
 \end{align}
 
-One particular requirement for using \cgls{sgd} to train the autoencoders is that the loss gradient needs to be backpropagated
-all the way through receiver and channel to the transmitter. Otherwise, the transmitter parameters cannot be updated. This in turn means, that channel and receiver must be available as differentiable functions during training.
+To compute the gradient effiently a computational graph stores the transformations to the factors which influenciate the loss function. 
 
-We can now set up the problem which we would like to address in this work. Namely, to train a deep \cgls{nn}-based autoencoder system to find a parametric distribution $p_{\theta}(s)$. By maximizing the \cgls{mi} during training, the output distribution must satisfy \ref{eq:C_minus_D}, and thus, approach the channel capacity.
+\subsection{Autoencoders}
+Autoencoders have been very successfull in fields like information compression, dimensionality reduction or computer vision. In the context of \cgls{ml} and communication systems it was pioneered by \citet{O'Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.), referred to as the \textit{bottleneck} in the autoencoder jargon. To find such representations and the corresponding mappings, $\textbf{x}$ to $\textbf{y}$, we make use of two \cglspl{ffnn}: the encoder, performing $f(\textbf{x})$, and the decoder, performing $g(\textbf{y})$. %Figure \ref{fig:autoencoder} ilustrates these concepts.
+
+\begin{figure}[h]
+\centering
+\input{figs/autoencoder}
+\caption{Representation of the \cglspl{nn} of an autoencoder.}
+\label{fig:autoencoder}
+\end{figure}
+
+One particular requirement for using \cgls{sgd} in autoencoders is that the loss gradient needs to be backpropagated all the way through receiver and channel to the transmitter. Otherwise, the transmitter parameters cannot be updated. This in turn means, that channel and receiver must be available as differentiable functions during training.
+\section{Conclusion}
+We can now set up the problem which we would like to address in this work. Namely, to train a \cgls{nn}-based autoencoder system to find optimal transmission and reception parameters. By maximizing the \cgls{mi} during training, the output distribution must satisfy (\ref{eq:C_minus_D}), and thus, approach the channel capacity without the mentioned penalties. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is paramount for finding the appropriate parameters over channels with a very complex, or even mathematically intractable, model.

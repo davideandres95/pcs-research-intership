@@ -53,7 +53,7 @@ maximizes the \cgls{mi}.
 
 \citeauthor{Stark}'s autoencoder is made up from three major blocks: sampler, modulator, and demodulator. Fig \ref{fig:starkAe} shows the complete architecture of the end-to-end system, where the trainable parameters $p_{\theta_S}(s), f_{\theta_M} \text{ and } p_{\theta_D}(s|y)$ correspond to our $P_M, C_M, \text{ and } D$, respectively. While the modulator and demodulator blocks are similar to the proposal from \cite{O'Shea}, the simultaneous probabilistic shaping is possible thanks to the careful design of the sampler. By ensuring that the sampler mechanism is differentiable, the gradients with respect to each $p_i \in P_M$ are precise when calculated via \cgls{sgd}. In fact, the differentiability is gained by leveraging the so-called \textit{Gumbel-Softmax trick} \cite{JANG}, which circunvents the need for using the arg-max function to sample the discrete distribution $P_M$.
 
-We have implemented the end-to-end system using PyTorch \cite{PyTorch}. The sampler is made out of 2 layers. The first layer is made out of 128 units with ReLU activation, and the second layer of M units with linear activations. In the forward pass, the logit output is then processed through the Gumbel-Softmax trick and then through the straight-through estimator to produce the one-hot-encoded training set. While in the backward pass, the straight-through estimator uses the approximate one-hot vector ---the output of the Gumbel-Softmax block.  The trainable parameter of the sampler, $P_M$, is initialized to a uniform distribution.
+We have implemented the end-to-end system using PyTorch \cite{PyTorch}. The sampler is made out of 2 layers. The first layer is made out of 128 units with ReLU activation, and the second layer of M units with linear activations. In the forward pass, the logit output is then processed through the Gumbel-Softmax trick and then through the straight-through estimator to produce the one-hot-encoded training set. While in the backward pass, the straight-through estimator uses the approximate one-hot vector ---the output of the Gumbel-Softmax block. The trainable parameter of the sampler, $P_M$, is initialized to a uniform distribution.
 The modulator is made out of a single linear layer of N units followed by a normalization operation to ensure that the energy constraint of the constellation is mantained, i.e.,
 \begin{align}
 	\sum\limits_{p_i \in P_M} p_i |x_i|^2.
@@ -61,42 +61,48 @@ The modulator is made out of a single linear layer of N units followed by a norm
 If only probabilistic shaping is applied, the constellation remains fixed, e.g., M-\cgls{ask}, is used. On the contrary, when geometric shaping is performed, the parameter $C_M$ corresponds to the unnormalized constellation points.
 Finally, the demodulator is made out of 3 layers. The first two layers are made out of 128 units with ReLU activations, and the third layer of M units with linear activation. The trainable parameter of the demodulator, $D$ corresponds to the \textit{a posteriori} probabilities $p(x|y)$.
 
-
-
 \subsection{Autoencoder Performance}
 
-Training was performed with the Adam optimizer and the hyper-parameters of the training are: learning-rate=0.001, batch-size=10000, and number of epochs=4000.
-The resulting M-\cgls{ask} constellations for both only probabilistic and joint probabilistic and geometric shaping are presented in Figure \ref{fig:starkMASK}. Moreover the respective achieved \cgls{mi} for the corresponding M-\cgls{qam} scheme, i.e., 64-\cgls{qam}, are available in Figure \ref{fig:starkPerf} for SNR values ranging from 5dB to 22dB.
+Training was performed with the Adam optimizer and the hyper-parameters of the training were: learning-rate 0.001, batch-size 10000, and number of epochs 4000.
+The resulting M-\cgls{ask} constellations for both only probabilistic and joint probabilistic and geometric shaping are presented in Figure \ref{fig:starkMASK}. Moreover the respective achieved \cgls{mi} for the corresponding M-\cgls{qam} scheme, i.e., 64-\cgls{qam}, are available for SNR values ranging from 5dB to 22dB in Figure \ref{fig:starkPerf}.
 	
 \begin{figure}[h]
 	\subfigure[SNR = 5dB]{
-         \scalebox{1}{\input{figs/stark_gcs_5dB.pgf}}
+         \input{figs/stark_gcs_5db}
          \label{subfig:stark5dB}
     }
-    \subfigure[SNR = 12dB]{
-         \scalebox{1}{\input{figs/stark_gcs_12dB.pgf}}
-         \label{subfig:stark12dB}
-    }
+%    \subfigure[SNR = 7dB]{
+%         \input{figs/stark_gcs_7db}
+%         \label{subfig:stark7dB}
+%    }
+%    \subfigure[SNR = 12dB]{
+%         \input{figs/stark_gcs_12db}
+%         \label{subfig:stark12dB}
+%    }
     \subfigure[SNR = 18dB]{
-         \scalebox{1}{\input{figs/stark_gcs_18dB.pgf}}
+         \input{figs/stark_gcs_18db}
          \label{subfig:stark18dB}
     }
-    \caption{(a-c) Learnt ASK constellation for M=8.}
+    \caption{Learnt ASK constellation for M=8.}
     \label{fig:starkMASK}
+\end{figure}
+
+\begin{figure}[h]
+	\subfigure[5dB]{
+		\input{figs/stark_pcs_5db}
+		\label{subfig:stark_pcs_5db}
+	}
+	\subfigure[18db]{
+		\input{figs/stark_pcs_18db}
+		\label{subfig:stark_pcs_18db}
+	}
+	\caption{Learnt probabilistic constellation shaping for M = 64. The size of the markers is proportional to the transmission probability of the symbol. When trained under 5dB, the proababilistic shaping approaches a gaussian. While under 18dB it approaches a uniform distribution. }
 \end{figure}
 
 \begin{figure}[H]
 	\centering
-	\subfigure{
-		\input{figs/stark_gcs_tikz.tex}
-		\label{subfig:starkPerf}
-	}
-	\subfigure{
-		\scalebox{0.8}{\input{figs/stark_zoom_gcs_18dB.pgf}}
-%		\input{figs/stark_gcs_18dB_tikz.tex}
-		\label{subfig:starkPerfZoom}
-	}
-    \caption{\subref{subfig:starkPerf} Mutual information learned by the PCS and GeoPCS for constellation size M=64 on the AWGN channel}.
+	\includegraphics[width=\textwidth]{figs/stark_gcs.pdf}
+    \caption{Mutual information learned by the PCS and GeoPCS for constellation size M=64 on the AWGN channel. Zoom is for the 18dB point.}
     \label{fig:starkPerf}
 \end{figure}
 
@@ -111,7 +117,7 @@ As we have seen in Chapter \ref{chap:preliminaries}, the goal of probabilistic c
 	 \max_{D, P_M, C_M} \mathbb{I} \left(X , Y ; D, P_M, C_M \right) = \mathbb{H}(X) - \mathbb{X}(P_{X|Y} \Vert Q_{X|Y} ; D, P_M, C_M)
 \end{align}
 
-where the entropy is maximized when the symbols probabilities follow a \cgls{mb} distribution; and the cross-equivocation is minimum when $Q_{X|Y} = P_{X|Y}$.
+where the entropy is maximized when the symbols' probabilities follow a \cgls{mb} distribution; and the cross-equivocation is minimum when $Q_{X|Y} = P_{X|Y}$.
 
 Typically, the gradient descent (or ascent, as we intent to maximize) allows us to solve the optimization problem by adjusting the trainable parameters as:
 \begin{align}
@@ -196,15 +202,19 @@ while the remaining ones must be explicitely computed and added to the gradient 
 	\label{fig:arefAe}
 \end{figure}
 
-\citeauthor{Aref}'s autoencoder is made up from two major blocks: mapper and demapper. Fig \ref{fig:arefAe} shows the complete architecture of the end-to-end system, where the trainable parameters are  $P_M, C_M, \text{ and } D$. Furthermore, the mapper breaks down into the sampling and the modulation mechanism. In order to sample, a single linear layer followed by a softmax layer trains the $p_i \in P_M$. Next, to produce a training symbols batch of size B, each index $i$ is drawn about $Bp_i$ times, for $i = 1, \dots, M$. After, the indeces are randomly permuted. Note that this sampling mechanism is not differentiable and consequently, the derivatives of the loss function w.r.t to the $p_i$ will not be accurate. However, using the \textit{gradient correction} factor described in Section \ref{sec:parameters}, the gradient is adjusted during the backpropagation step. Similar to the previously presented architecture, the modulation mechanism is made of a single linear layer of M units and trainable parameters $c_i \in C_M$. It also includes a normalization layer to ensure that the power contstraints are met. Finally, the Demapper is also made of a single linear layer followed by a softmax layer. The demapper's trainable parameter, $D$ correspond to the \textit{a posteriori} probability distribution $p(x|y)$ depending on the channel model.
+\citeauthor{Aref}'s autoencoder is made up from two major blocks: mapper and demapper. Fig \ref{fig:arefAe} shows the complete architecture of the end-to-end system, where the trainable parameters are $P_M, C_M, \text{ and } D$. Furthermore, the mapper breaks down into the sampling and the modulation mechanism. In order to sample, a single linear layer followed by a softmax layer trains the $p_i \in P_M$. Next, to produce a training symbols batch of size B, each index $i$ is drawn about $Bp_i$ times, for $i = 1, \dots, M$. After, the indeces are randomly permuted. Note that this sampling mechanism is not differentiable and consequently, the derivatives of the loss function w.r.t to the $p_i$ will not be accurate. However, using the \textit{gradient correction} factor described in Section \ref{sec:parameters}, the gradient is adjusted during the backpropagation step. Similar to the previously presented architecture, the modulation mechanism is made of a single linear layer of M units and trainable parameters $c_i \in C_M$. It also includes a normalization layer to ensure that the power contstraints are met. Finally, the Demapper is also made of a single linear layer followed by a softmax layer. The demapper's trainable parameter, $D$ correspond to the \textit{a posteriori} probability distribution $p(x|y)$ depending on the channel model.
 
 \subsection{Autoencoder Performance}
 Training was performed with the Adam optimizer and the hyper-parameters of the training are: learning-rate=0.1, batch-size=10000, and number of epochs=4000.
 The resulting M-\cgls{ask} constellations for both only probabilistic and joint probabilistic and geometric shaping are presented in Figure \ref{fig:arefMASK}. Moreover the respective achieved \cgls{mi} for the corresponding M-\cgls{qam} scheme, i.e., 64-\cgls{qam}, are available in Figure \ref{fig:arefPerf} for SNR values ranging from 5dB to 22dB.
 
-\begin{figure}
-	\input{figs/aref_gcs_tikz.tex}
+\begin{figure}[h]
+	\includegraphics[width=\columnwidth]{figs/aref_gcs.pdf}
 	\caption{Mutual information learned by the probabilistic constellation shpaing on the AWGN channel.}
 	\label{fig:arefPerf}
 \end{figure}
+
+\input{figs/aref_QAM.tex}
+
+\input{figs/aref_MASK.tex}
 
