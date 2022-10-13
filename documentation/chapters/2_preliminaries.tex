@@ -81,7 +81,7 @@ Now we can rewrite \ref{eqn:MI} as
 	& = C(P/\sigma^2) - \mathbb{D}(p_Y \Vert p_G).
 \label{eq:C_minus_D}
 \end{align}
-This last result indicates that the loss of MI when using a distribution $P_X$ different than $P_G$ is the informational divergence $\mathbb{D}(p_Y \Vert p_G)$. In other words, if the gaussian distribution is not used, the capacity penalty is characterized by $\mathbb{D}(p_Y \Vert p_G)$.\\
+This last result indicates that the loss of MI when using a distribution $P_X$ different than $P_G$ is the informational divergence $\mathbb{D}(p_Y \Vert p_G)$. In other words, if the Gaussian distribution is not used, the capacity penalty is characterized by $\mathbb{D}(p_Y \Vert p_G)$.\\
 
 \subsection{Capacity Gap for Uniform Continuous Input}
 \begin{figure}[ht!]
@@ -173,7 +173,7 @@ Formally, our optimization problem is the following
 	C(P/\sigma^2) &= \max\limits_{\Delta, P_X :\mathbb{E}[(\Delta X)^2] \leq P} \mathbb{I}(X;\Delta X+Z).
 \end{align}
 
-Maximizing the mutual information $\mathbb{I}(X;\Delta X+Z)$ both over the scaling of the constellation points and the input distribution requires a relatively high amount of power. Instead, as shown in \cite{BoechererCM}, section 5.3, we will use a suboptimal input distribution which follows from maximizing the input entropy.
+Maximizing the mutual information $\mathbb{I}(X;\Delta X+Z)$ both over the scaling of the constellation points and the input distribution requires a relatively high amount of power. Instead, as shown in \cite{BoechererCM}, section 5.3, we will use a sub-optimal input distribution which follows from maximizing the input entropy.
 
 We expand the mutual information as
 \begin{align}
@@ -217,16 +217,18 @@ where the (*) marked step follows since both distributions produce the same mome
 In the following we consider \cglspl{ffnn}, an specific type of \cgls{nn}, \cgls{sgd}, and autoencoders.
 
 \subsection{Feed-Forward Neural Networks}
-\cGlspl{ffnn} are structures which map an input vector $\bold{v_0} = (v_{0,1} \dots v_{0,M})$ to an output vector $\bold{v_k} = (v_{K,1} \dots v_{K,N})$, i.e., $\bold{v_K}=f_{\text{NN}}(\bold{v_0})$. This transformation is accomplished by composing functions, which in turn are computed by layers. The number of layers, K, is commonly referred to as depth of the network. And each layer can be composed of an specific number of units (neurons), M, often referred to as width of the layer. A representation of this structure is
+\cGlspl{ffnn} are structures which map an input vector $\bold{v_0} = (v_{0,1} \dots v_{0,M})$ to an output vector $\bold{v_k} = (v_{K,1} \dots v_{K,N})$, i.e., $\bold{v_K}=f_{\text{NN}}(\bold{v_0})$. This transformation is accomplished by composing functions, which in turn are computed by layers. The number of layers, K, is commonly referred to as depth of the network. And each layer can be composed of a specific number of units (neurons), M, often referred to as width of the layer. A representation of this structure is shown in Figure \ref{fig:ffnn}
 
 \begin{figure}[H]
 	\centering
 	\input{figs/ffnn}
+	\caption{Representation of the structure of a \cgls{ffnn}.}
+	\label{fig:ffnn}
 \end{figure}
 
 
 Note that the width of the input and output layers must match the dimensions of the input and output vectors.\\
-Mathematically, the output of a unit is parametrized by a weigth, $\bold{w}_{k,m}$, and a bias, $b_{k,m}$, and can be expressed as
+Mathematically, the output of a unit is parameterized by a weight, $\bold{w}_{k,m}$, and a bias, $b_{k,m}$, and can be expressed as
 \begin{align}
 	v_{k,m} = g_{\text{NL},k}(\vb{v}_{k-1}\vb{w}^\top_{k,m} + b_{k,m}), \qquad k = 1, \dots, K \qquad m = 1, \dots, M.
 	\label{eqn:neuron}
@@ -253,7 +255,7 @@ Where in (\ref{eqn:neuron}), k indicates the layer index, m indicates the unit i
 	\draw (p) -- (f);
 	\draw (f) -- (4.5,1) node[xshift=10]{$v_{k,m}$};
 \end{tikzpicture}
-	
+\caption{Diagram for the output's computation of a single unit as (\ref{eqn:neuron}).}
 \end{figure}
 Indeed, without the nonlinear function the \cgls{ffnn} lacks the expressive power required to approximate any function \cite{HORNIK1989359}.\\
 Finally, using matrix notation we can express the output of each layer as
@@ -264,15 +266,14 @@ Finally, using matrix notation we can express the output of each layer as
 These structures, together with a training algorithm, help us to find parameters $\bold{W_k}$ and $\bold{b_k}$ such that $f_{\text{NN}}(\bold{v_0})$ approximates an unknown function. To this end, the algorithm receives training sets of observed pairs of the unknown function, where each pair has the form $\{$input, output$\}$.
 
 \subsection{Stochastic Gradient Descent}
-To find fitting sets of parameters $\{\bold{W_k}, \bold{b_k}\}$ we define a loss function,  $L(\bold{W_k} , \bold{b_k})$, that compares the current output of the \cgls{nn} with the desired output from the training set. The most used algorithm is \acrfull{sgd} which starts with a random set of initial values and then updates $\{\bold{W_k}, \bold{b_k}\}$ with each iteration as
+To find fitting sets of parameters $\{\bold{W_k}, \bold{b_k}\}$ we define a loss function,  $L(\bold{W_k} , \bold{b_k})$, that compares the current output of the \cgls{nn} with the desired output from the training set. The most used algorithm is \acrfull{sgd} which starts with a random set of initial values and then updates any trainable parameter, $\theta$, with each iteration as
 \begin{align}
-	\boldsymbol{\theta}_{new} = \boldsymbol{\theta}_{old} + \epsilon \grad L(\boldsymbol{\theta}_{old}), \qquad \boldsymbol{\theta} \in \{\bold{W_k}, \bold{b_k}\}
+	{\theta}_{new} = {\theta}_{old} + \epsilon \grad L({\theta}_{old}) %, \qquad \boldsymbol{\theta} \in \{\bold{W_k}, \bold{b_k}\}
 \end{align}
-
-To compute the gradient effiently a computational graph stores the transformations to the factors which influenciate the loss function. 
+where, $\grad$ is the gradient, and $\epsilon$ stands for the learning rate. To compute the gradient efficiently a computational graph stores the transformations to the factors which influenced the loss function. 
 
 \subsection{Autoencoders}
-Autoencoders have been very successfull in fields like information compression, dimensionality reduction or computer vision. In the context of \cgls{ml} and communication systems it was pioneered by \citet{O'Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.), referred to as the \textit{bottleneck} in the autoencoder jargon. To find such representations and the corresponding mappings, $\textbf{x}$ to $\textbf{y}$, we make use of two \cglspl{ffnn}: the encoder, performing $f(\textbf{x})$, and the decoder, performing $g(\textbf{y})$. %Figure \ref{fig:autoencoder} ilustrates these concepts.
+Autoencoders have been very successful in fields like information compression, dimensionality reduction or computer vision. In the context of \cgls{ml} and communication systems it was pioneered by \citet{O'Shea}. The idea behind an autoencoder is to transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error. This means that the desired representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.), referred to as the \textit{bottleneck} in the autoencoder jargon. To find such representations and the corresponding mappings, $\textbf{x}$ to $\textbf{y}$, we make use of two \cglspl{ffnn}: the encoder, performing $f(\textbf{x})$, and the decoder, performing $g(\textbf{y})$. %Figure \ref{fig:autoencoder} ilustrates these concepts.
 
 \begin{figure}[h]
 \centering
@@ -281,6 +282,6 @@ Autoencoders have been very successfull in fields like information compression, 
 \label{fig:autoencoder}
 \end{figure}
 
-One particular requirement for using \cgls{sgd} in autoencoders is that the loss gradient needs to be backpropagated all the way through receiver and channel to the transmitter. Otherwise, the transmitter parameters cannot be updated. This in turn means, that channel and receiver must be available as differentiable functions during training.
-\section{Conclusion}
-We can now set up the problem which we would like to address in this work. Namely, to train a \cgls{nn}-based autoencoder system to find optimal transmission and reception parameters. By maximizing the \cgls{mi} during training, the output distribution must satisfy (\ref{eq:C_minus_D}), and thus, approach the channel capacity without the mentioned penalties. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is paramount for finding the appropriate parameters over channels with a very complex, or even mathematically intractable, model.
+One particular requirement for using \cgls{sgd} in autoencoders is that the loss gradient needs to be backpropagated all the way through receiver and channel to the transmitter. Otherwise, the transmitter parameters cannot be updated. This in turn means, that the end-to-end path must be available as differentiable functions during training.
+\section{Outlook}
+We can now set up the problem which we would like to address in this work. Namely, to train a \cgls{nn}-based autoencoder system which can find the optimal distribution and location of the  to-be-transmitted constellation. By maximizing the \cgls{mi} during training, the output distribution must satisfy (\ref{eq:C_minus_D}), and thus, approach the channel capacity without the mentioned penalties. Because \cglspl{nn} are universal function approximators \cite{HORNIK1989359}, this technique is paramount for finding the appropriate parameters over channels with a very complex, or even mathematically intractable, model.

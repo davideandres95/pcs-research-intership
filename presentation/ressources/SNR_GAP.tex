@@ -1,0 +1,89 @@
+% This file was created with tikzplotlib v0.10.1.
+\begin{figure}
+\centering
+
+\begin{tikzpicture}[font=\tiny]
+
+\definecolor{darkgray176}{RGB}{176,176,176}
+\definecolor{darkorange25512714}{RGB}{255,127,14}
+\definecolor{lightgray204}{RGB}{204,204,204}
+
+\begin{axis}[
+width={0.8*\columnwidth},
+legend cell align={left},
+legend style={
+  fill opacity=0.8,
+  draw opacity=1,
+  text opacity=1,
+  at={(0.03,0.97)},
+  anchor=north west,
+  draw=lightgray204
+},
+tick align=outside,
+tick pos=left,
+title={AWGN shaping gap},
+xlabel near ticks,
+x grid style={darkgray176},
+xlabel={SNR in dB},
+xmajorgrids,
+xmin=4.05, xmax=24.95,
+xtick style={color=black},
+y grid style={darkgray176},
+ylabel near ticks,
+ylabel={bits per channel use},
+ymajorgrids,
+ymin=1.49397884258601, ymax=8.28713952900197,
+ytick style={color=black}
+]
+\addplot [semithick, black]
+table {%
+5 2.0573732086068
+6 2.31645617962626
+7 2.58781437356203
+8 2.86978721917029
+9 3.16080442391302
+10 3.4594316186373
+11 3.76439436704286
+12 4.07458523490543
+13 4.38905896736305
+14 4.70702026272884
+15 5.02780767335052
+16 5.3508761542486
+17 5.67577990180488
+18 6.00215644400198
+19 6.32971245944191
+20 6.65821148275179
+21 6.98746345895592
+22 7.31731600193655
+23 7.64764716249041
+24 7.97835949780125
+};
+\addlegendentry{$C(P/\sigma^2)$}
+\addplot [semithick, darkorange25512714, dashed]
+table {%
+5 1.80275887378673
+6 2.0618418448062
+7 2.33320003874197
+8 2.61517288435022
+9 2.90619008909296
+10 3.20481728381723
+11 3.5097800322228
+12 3.81997090008536
+13 4.13444463254298
+14 4.45240592790877
+15 4.77319333853046
+16 5.09626181942854
+17 5.42116556698482
+18 5.74754210918192
+19 6.07509812462185
+20 6.40359714793173
+21 6.73284912413586
+22 7.06270166711648
+23 7.39303282767034
+24 7.72374516298118
+};
+\addlegendentry{$C(P/\sigma^2) - \dfrac{1}{2}\log_2\dfrac{\pi e}{6}$}
+\end{axis}
+
+\end{tikzpicture}
+\end{figure}

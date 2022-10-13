@@ -1,0 +1,336 @@
+\documentclass[english,aspectratio=1610,9pt,helvet,nicetitles]{ICEbeamerTUMCD}
+% options: 169, 1610, 43, mathTUMCD, english, german, ngerman, helvet, handout, notes, ruled, nicetitles
+% Unknown options are passed to beamer class, e.g., pass t for top alignment of slide content
+
+\newcommand{\PersonTitel}{}
+\newcommand{\PersonVorname}{David}
+\newcommand{\PersonNachname}{de Andrés Hernández}
+\newcommand{\PersonStadt}{Munich}
+\newcommand{\PersonAdresse}{%
+    Boschetsriederstr. 55A\\%
+    81379~\PersonStadt%
+}
+\newcommand{\PersonTelefon}{@Telefon@}
+\newcommand{\PersonEmail}{@E-Mail@}
+\newcommand{\PersonWebseite}{@Web@}
+% Fakultät:
+\newcommand{\FakultaetName}{Department of Electrical and Computer Engineering}
+\newcommand{\LehrstuhlName}{Institute for Communications Engineering}
+
+\hyphenation{} % eigene Silbentrennung
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\newcommand{\Datum}{\today}
+
+
+\title{Geometric and Probabilistic Constellation\\ \vspace{0.5cm} Shaping with Autoencoders}
+\subtitle{Research Internship} % Comment out if no subtitle wanted
+\author{\PersonVorname{} \PersonNachname{}}
+\institute[]{Technical University of Munich \\ Institute for Communications Engineering}
+
+% \setlength{\offsetTitle}{1cm} % Adjust spacing between title and header
+% \setlength{\authorOffsetTitlepage}{5cm} % Adjust spacing between author and title
+
+% More layouts of notes can be activated by uncommenting the following
+% See https://github.com/gdiepen/latexbeamer-handoutWithNotes for all available layouts
+% \pgfpagesuselayout{3 on 1 with notes}[a4paper,border shrink=5mm]
+\graphicspath {{/home/ddeandres/Projects/internship_pcs/documentation/figs/}}
+\usepackage[backend=bibtex,style=ieee-alphabetic,natbib=true, maxcitenames=2]{biblatex} %added
+\usepackage{subfigure} %added
+\usepackage{physics}
+\addbibresource{/home/ddeandres/Projects/internship_pcs/documentation/refs.bib}
+
+\begin{document}
+\setlength{\baselineskip}{\PraesentationAbstandAbsatz}
+\setlength{\parskip}{\baselineskip}
+% \let\thefootnote\relax\footnote
+\PraesentationMasterStandard
+
+\PraesentationTitelseite % Fügt die Startseite eon
+
+
+\begin{frame}{Introduction}
+	\begin{figure}[h]
+    \centering
+	\begin{tikzpicture}
+		\node(src) at (0,0){};
+		\node[draw] at (2,0) (map){Mapper};
+		\node[draw] at (5,0) (ch) {Channel};
+%		\node at (4,0) (dsp) {$\cdots$};
+%		\node[draw, align=center] at (6,0) (nleq) {Equalizer \\ $f(\cdot)$};
+		\node[draw] at (8,0) (demap) {Demapper};
+%		\node[draw] at (14,0) (fec) {SD-FEC};
+		\node(dst) at (10,0){};
+		
+		\draw[-latex] (src) --  (map) node[midway,above] {$s$};		
+		\draw[-latex] (map) --  (ch) node[midway,above] {$x$};
+%		\draw[-latex] (ch) --  (nleq) node[midway,above] {};
+%		\draw[-latex] (dsp) -- (nleq) node[midway,above] {$r$};
+		\draw[-latex] (ch) -- (demap) node[midway,above] {$y$};	
+		\draw[-latex] (demap) --(dst) node[right,above]{$Q_{X|Y}(\cdot|y)$};
+
+	\end{tikzpicture}
+	\end{figure}
+	\begin{itemize}
+	\item Sending a single bit per time-frequency slot is inefficient.
+	\item Higher-order modulations like amplitude shift keying (ASK) or quadrature amplitude modulation (QAM) are used for better efficiency.
+	\item However, these schemes present a constant-width gap to the capacity limit.
+	\end{itemize}
+\end{frame}
+
+\begin{frame}{Agenda}
+  \begin{enumerate}
+  \item Probabilistic Constellation Shaping
+%  	\begin{itemize}
+%  	\item Capacity Gap for Uniform Continuous Input
+%  	\item Uniform Discrete Input Bound
+%  	\item Capacity Achieving Distributions
+%  	\end{itemize}
+  \item Autoencoders
+%	\begin{itemize}
+%  	\item Feed-Forward Neural Networks
+%  	\item Stochastic Gradient Descent
+%  	\item Autoencoders
+%  	\end{itemize}
+  \item Contribution
+  \item Conclusion
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{First implementation \cite{Stark}}
+	Trainable parameters:
+	\vspace{-5mm}
+	\begin{itemize}
+		\item $P_M$, source's probability distribution learnt by the encoder.
+		\item $C_M$, spatial distribution of the constellation points learnt by the mapper.
+		\item $D$, posterior probability distribution learnt by the demapper.
+	\end{itemize}
+	\vspace{-5mm}
+	Autoencoder architecture:
+	\begin{figure}
+		\centering
+		\includegraphics[width=0.6\columnwidth]{stark_diagram.pdf}
+%		\caption{Proposed Autoencoder Architecture from \cite{Stark}}
+		\label{fig:starkAe}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{Loss Function}
+	The goal of probabilistic constellation shaping is to maximize the MI. To this end, defining an appropriate loss function is critical. Starting from the demodulator, the categorical cross entropy loss
+\begin{align}
+	L(D, P_M, C_M) \triangleq \mathbb{X}(P_{X|Y}||Q_{X|Y}; D) = \mathbb{E}\left[-\log_2(Q(X|Y;D))\right] 
+\end{align}
+is appropriate for training $D$, but not for $P_M$ and $C_M$. A modification of this loss function is necessary to ensure that the end-to-end MI is maximized. The following expansions will come handy
+\begin{align}
+	\mathbb{H}(X) = \mathbb{X}(P_{X|Y}||Q_{X|Y}) - \mathbb{D}(P_{X|Y}||Q_{X|Y})
+\end{align}
+\begin{align}
+	\mathbb{H}(X|Y=y) = \mathbb{X}(P_{X|y}||Q_{X|y}|Y=y) - \mathbb{D}(P_{X|y}||Q_{X|y}|Y=y)
+\end{align}
+\begin{align}
+	\mathbb{H}(X|Y) = \mathbb{E}_y\left[\mathbb{X}(P_{X|y}||Q_{X|y}|Y=y)\right] - \mathbb{E}_y \left[\mathbb{D}(P_{X|y}||Q_{X|y}|Y=y)\right].
+\end{align}
+\end{frame}
+
+\begin{frame}{Loss Function (cont'd)}
+Using the last expansion we can rewrite the mutual information in terms of the categorical cross entropy
+\begin{align}
+	\mathbb{I} \left(X , Y\right) = \mathbb{H}(X) - \mathbb{X}(P_{X|Y}||Q_{X|Y}) + \mathbb{D}(P_{X|Y}||Q_{X|Y}).
+\end{align}
+And the categorical cross entropy loss function becomes 
+\begin{align}
+	L(D, P_M, C_M) \triangleq \mathbb{H}(X) - \mathbb{I} \left(X , Y\right) + \mathbb{D}(P_{X|Y}||Q_{X|Y}).
+\end{align}
+So, if $L$ is minimized during training, the source entropy is unwantedly minimized. To avoid this effect, \citeauthor{Stark} modify the loss function as
+\begin{align}
+	\hat{L}(D, P_M, C_M) \triangleq L(D, P_M, C_M) - \mathbb{H}(X).
+\end{align}
+With this correction the optimization problem 
+\begin{align}
+	\min_{D, P_M, C_M}\hat{L}(D, P_M, C_M) = \max_{D, P_M, C_M} \{ \mathbb{I} \left(X , Y\right) - \mathbb{D}(P_{X|Y}||Q_{X|Y})\}
+\end{align}
+maximizes the MI.
+\end{frame}
+
+\begin{frame}{Probabilistic Constellation Shaping}
+\begin{figure}
+	\subfigure[5dB]{
+		\input{../documentation/figs/stark_pcs_5db}
+		\label{subfig:stark_pcs_5db}
+	}
+	\subfigure[18db]{
+		\input{../documentation/figs/stark_pcs_18db}
+		\label{subfig:stark_pcs_18db}
+	}
+	\caption{Learnt probabilistic constellation shaping for M = 64. The size of the markers is proportional to the transmission probability of the symbol. When trained under 5dB, the probabilistic shaping approaches a Gaussian. While under 18dB it approaches a uniform distribution. }
+\end{figure}
+\end{frame}
+
+\begin{frame}{Joint Probabilistic and Geometric Shaping}
+\begin{figure}[h]
+	\subfigure[SNR = 5dB]{
+         \input{../documentation/figs/stark_gcs_5db}
+         \label{subfig:stark5dB}
+    }
+    \subfigure[SNR = 18dB]{
+         \input{../documentation/figs/stark_gcs_18db}
+         \label{subfig:stark18dB}
+    }
+    \caption{Learnt joint geometric and probabilistic ASK constellations for M=8.}
+    \label{fig:starkMASK}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Overall Performance}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.75\columnwidth]{stark_gcs.pdf}
+%    \caption{Mutual information learned by the PCS and GeoPCS for constellation size M=64 on the AWGN channel. Zoom is for the 18dB point.}
+    \label{fig:starkPerf}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Second implementation \cite{Aref}}
+	What motivates another implementation?\\
+	\textit{The Gumbel-Softmax trick is complex and numerically unstable.\\}
+	Trainable parameters:
+	\vspace{-5mm}
+	\begin{itemize}
+		\item $P_M$, source's probability distribution learnt by the sampler.
+		\item $C_M$, spatial distribution of the constellation points learnt by the mapper.
+		\item $D$, posterior probability distribution learnt by the demapper.
+	\end{itemize}
+	
+    \begin{figure}
+		\centering
+		\includegraphics[width=0.8\columnwidth]{aref_diagram.png}
+	%	\caption{Proposed Autoencoder Architecture from \cite{Aref}}
+		\label{fig:arefAe}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{Loss Function}
+	The goal is again to to maximize the mutual information
+	\begin{align}
+		 \max_{D, P_M, C_M} \mathbb{I} \left(X , Y ; D, P_M, C_M \right) = \mathbb{H}(X) - \mathbb{X}(P_{X|Y} \Vert Q_{X|Y} ; D, P_M, C_M).
+	\end{align}
+	
+	Typically, through SGD we adjust the trainable parameters as:
+	\begin{align}
+		\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} \mathbb{I} \left(X , Y ; \theta_{old} \right)
+	\end{align}
+	for all trainable parameters $\theta \in P_M, C_M, D$. And the MI can be numerically approximated by
+	\begin{align}
+		\mathbb{I} \left(X , Y\right) \approx \mathbb{I} \left(X , Y\right)_{\text{num}} &= \dfrac{1}{B} \sum \limits_{i = 1}^{B} - \log_2(P(x_i)) + \log_2(Q_{X|Y}(x_i|y_i))\\
+		&= \dfrac{1}{B} \sum \limits_{i = 1}^{B} L(x_i, y_i).
+	\end{align}
+\end{frame}
+
+\begin{frame}
+	Next, the following approximation usually allows to adjust the trainable parameters:
+	\begin{align}
+		\pdv{\theta} \mathbb{I} \left(X , Y ; \theta \right) \approx \pdv{\theta} \mathbb{I} \left(X , Y\right)_{\text{num}} = \dfrac{1}{B} \sum \limits_{i = 1}^{B} L(x_i, y_i).
+	\end{align}
+	
+	However, Aref claims that although this is true for the constellation locations $(\theta \in C_M)$ and the demapper parameters $(\theta \in D)$, it does not hold for the constellation probabilities $\{p_1, p_2, \dots, p_M\} = P_M$
+	\begin{align}
+	\label{eqn:mi_pdv_p}
+		\pdv{p_j} \mathbb{I} \left(X , Y ; P_M \right) \not\approx \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{p_j} L(x_i, y_i)
+	\end{align}
+	
+	as $\{p_1, p_2, \dots, p_M\}$ changes the statistics of the training set.
+	
+	For this reason, (\ref{eqn:mi_pdv_p}) must be computed differently.
+	
+	\end{frame}
+
+\begin{frame}
+	
+%	On the one hand, to compute the derivative of the cross-equivocation, the following expansions are useful
+%	\begin{align}
+%		\mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y} \vert Y=b \right) = \sum \limits_{a \in Supp(P_{X|Y}(\cdot|b))} P_{X|Y}(a|b) \log_2(Q_{X|Y}(a|b))
+%	\end{align}
+%	
+%	\begin{align}
+%		\mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y}\right) = \sum \limits_{b \in Supp(P_Y)} P_Y(b) \mathbb{X}\left( P_{X|Y} \Vert Q_{X|Y} \vert Y=b \right) 
+%	\end{align}
+%	
+%	as combined together and applying Bayes' theorem they yield
+	
+	\begin{align}
+	\label{eqn:CE_expanded}
+		\mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y}\right) = \sum \limits_{(a,b) \in Supp(P_{XY})} P_X(a) P_{Y|X}(b|a) \log_2(Q_{X|Y}(a|b)). 
+	\end{align}
+	
+	And so, the derivative results
+	\begin{align}
+		\pdv{p_j} \mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y}\right) &= \sum \limits_{b \text{ if } x=j} P_{Y|X}(b|j) \log_2 Q_{X|Y}(j|b) 
+		+ \sum \limits_{(a,b) \in Supp(P_{XY})} P_{XY}(a, b) \pdv{p_j} \log_2 Q_{X|Y}(a|b),
+	\end{align}
+	which can be rewritten using the expectation operator as
+	\begin{align}
+		\pdv{p_j} \mathbb{X}\left(P_{X|Y} \Vert Q_{X|Y}\right) &= \mathbb{E}_{Y|X}[ \log_2 Q_{X|Y}(j|b)| X=j] + \mathbb{E}_{XY}[ \pdv{p_j} \log_2 Q_{X|Y}(a|b)].
+	\end{align}
+	The terms can now be numerically computed as
+	\begin{align}
+	\label{eqn:CE_term_1}
+		\mathbb{E}_{Y|X}[ \log_2 Q_{X|Y}(j|b)| X=j] \approx \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b)
+	\end{align}
+	\begin{align}
+	\label{eqn:CE_term_2}
+		\mathbb{E}_{XY}[ \pdv{p_j} \log_2 Q_{X|Y}(a|b)] \approx \dfrac{1}{B} \sum \limits_{(a,b) \in Supp(P_{XY})} \log_2 Q_{X|Y}(a|b).
+	\end{align}
+	
+	\end{frame}
+	\begin{frame}
+	
+	On the other hand, the derivative of the entropy w.r.t. $p_j$ is
+	\begin{align}
+	\label{eqn:H_term_1}
+		\pdv{p_j} \mathbb{H}(X) = \pdv{p_j} \sum \limits_{i = 1}^{B} - p_i \log_2(p_i) = - \log_2 (p_j) - log_2 (e).
+	\end{align}
+	
+	Now, combining (\ref{eqn:CE_term_1}), (\ref{eqn:CE_term_2}), and (\ref{eqn:H_term_1}) the derivative of the mutual information w.r.t. $p_j$, (\ref{eqn:mi_pdv_p}), can be computed as
+	\begin{align}
+		\pdv{p_j} \mathbb{I} \left(X , Y ; P_M \right) \approx - \log_2 (p_j) - \log_2 (e) + \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b) + \dfrac{1}{B} \sum \limits_{(a,b)} \log_2 Q_{X|Y}(a|b)
+	\end{align}
+	
+	Aref now indicates that the following terms can be computed via backpropagation
+	\begin{align}
+		- \log_2 (p_j) + \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b) = \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{p_j} L(x_i, y_i)
+	\end{align}
+	while the remaining ones must be explicitly computed and added to the gradient after backpropagating. We call this step \textit{gradient correction} and it is due to the change of statistics in the sampled batch.
+	
+\end{frame}
+	
+
+\begin{frame}{Probabilistic Shaping}
+	\input{../documentation/figs/aref_QAM.tex}
+
+\end{frame}
+
+\begin{frame}{Joint Geometric and Probabilistic Shaping}
+	\input{../documentation/figs/aref_MASK.tex}
+\end{frame}
+
+\begin{frame}{Overall Performance}
+	\centering
+	\includegraphics[width=0.75\columnwidth]{aref_gcs.pdf}
+	\label{fig:arefPerf}
+
+\end{frame}
+
+\begin{frame}{Bibliography}
+\printbibliography[heading=none]
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document} % !!! NICHT ENTFERNEN !!!
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
