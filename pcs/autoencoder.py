@@ -66,8 +66,6 @@ class Decoder_Stark(nn.Module):
         self.act2 = nn.ReLU()
         self.lin3 = nn.Linear(width, out_features)
 
-
-
     def forward(self, y):
         y = self.act1(self.lin1(y))
         y = self.act2(self.lin2(y))

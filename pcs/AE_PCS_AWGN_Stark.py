@@ -100,7 +100,7 @@ for (k, SNR_db) in enumerate(chParam.SNR_db):
             s_logits = encoder(enc_inp)
             g_dist = torch_d.Gumbel(loc=torch.tensor([0.]), scale=torch.tensor([1.])) # create Gumbel dist
             g = torch.squeeze(g_dist.sample(sample_shape=[trainingParam.batchSize, chParam.M]))
-            s_bar = F.softmax(input=((g + s_logits) / aeParam.temperature), dim=1)
+            s_bar = F.softmax(input=((g + s_logits) / aeParam.temperature), dim=1) # this is wrong implementation
             s = STEFunction.apply(s_bar) # straight through estimator
 
             # normalization & Modulation

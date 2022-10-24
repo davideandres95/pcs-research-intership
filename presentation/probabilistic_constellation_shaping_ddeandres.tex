@@ -39,7 +39,15 @@
 \usepackage[backend=bibtex,style=ieee-alphabetic,natbib=true, maxcitenames=2]{biblatex} %added
 \usepackage{subfigure} %added
 \usepackage{tikzscale} %added
-\usepackage{physics}
+\usepackage{xcolor}	%added
+\usepackage{physics}%added
+\setbeameroption{show notes on second screen}
+\setbeamertemplate{note page}{%
+  \vspace{10mm}
+  \nointerlineskip
+  \insertnote
+}
+\setbeamerfont{note page}{size=\normalsize}
 \addbibresource{/home/ddeandres/Projects/internship_pcs/documentation/refs.bib}
 
 \begin{document}
@@ -69,6 +77,7 @@
   \end{itemize}
   \item Conclusions
   \end{enumerate}
+  
 \end{frame}
 
 
@@ -84,6 +93,14 @@
   \begin{minipage}{0.5\linewidth}
     \input{ressources/SNR_GAP.tex}
   \end{minipage}
+  \note{
+  \begin{itemize}
+  \item Simple problem definition: maximize the MI under a power constraint 
+  \item Sending a single bit is inefficient. For this reason, QAM and ASK schemes are used. So depending on the SNR you are targetting you might choose the cardinality of your scheme.
+  \item However, if we are to improve the AIR of these schemes we will soon find out that there are some barriers.
+  \end{itemize}
+  }
+  
 \end{frame}
 
 \begin{frame}{Closing the SNR Gap}
@@ -94,7 +111,7 @@
 		\item The constellation points are equidistant
 	\end{enumerate}
 	\item Solution 1: Shape the probability of occurrence of the constellation points --- Probabilistic Constellation Shaping
-	\item Solution 2: Shape the space location of the constellation points --- Geometric Constellation Shaping
+	\item Solution 2: Shape the spatial location of the constellation points --- Geometric Constellation Shaping
 	\begin{figure}
 	\includegraphics[width=0.4\columnwidth]{ressources/PCS_GCS.png}
 	\caption{(a) Probabilistic Constellation Shaping, (b) Geometric Constellation Shaping; \cite{Cho2019ProbabilisticCS}}
@@ -103,25 +120,13 @@
 
 \end{frame}
 
-\begin{frame}{Why does it makes sense to use ML for this problem?}
-\begin{itemize}
-\item Finding the constellation parameters when $p(y|x)$ is very complex or unknown can be mathematically untractable
-\item NN have the property of being universal function approximators \cite{HORNIK1989359}
-\item \citet{O'Shea} pioneered the idea of interpreting the complete communication system as an autoencoder
-% e2e optimization of transmitter and receiver
-\end{itemize}
-\begin{figure}
-\includegraphics[width=0.5\columnwidth]{ressources/oshea.png}
-\caption{Autoencoder architecture proposed by \citep{O'Shea}.}
-\end{figure}
-\end{frame}
 
 \begin{frame}{Autoencoders}
 \begin{itemize}
-%\item Autoencoders have been successfully implemented in fields like computer vision or data compression.
+\item \citet{O'Shea} pioneered the idea of interpreting the complete communication system as an autoencoder
 \item Idea: transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error
 \item This representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.) --- bottleneck in the autoencoder jargon
-\item The autoencoder is implemented using Feed-forward Neural Networks (FFNN), and the parameters are learned using Stochastic Gradient Descent (SGD)
+
 \end{itemize}
 \vspace{-5mm}
 \begin{figure}
@@ -132,7 +137,18 @@
 \caption{Representation of the NN of an autoencoder.}
 \label{fig:autoencoder}
 \end{figure}
-
+\note{
+Why does it makes sense to use ML for this problem?
+\begin{itemize}
+\item Finding the constellation parameters when $p(y|x)$ is very complex or unknown can be mathematically untractable
+\item NN have the property of being universal function approximators \cite{HORNIK1989359}
+\item The autoencoder is implemented using Feed-Forward Neural Networks (FFNN), and the parameters are learned using Stochastic Gradient Descent (SGD)
+\item --- ---
+\item An autoencoder is a type of neural network used to learn efficient codings of unlabeled data (unsupervised learning).
+\item The autoencoder learns a representation (encoding) for a set of data, typically for dimensionality reduction, by training the network to ignore insignificant data (“noise”).
+\item The chosen encoding is validated and refined by attempting to regenerate the input from the encoding.
+\end{itemize}
+}
 \end{frame}
 
 \begin{frame}{Challenges}
@@ -141,12 +157,12 @@
 	\begin{tikzpicture}
 		\node[draw] at (0,1.5) (dist){Categorical Distribution};
 		\node[draw, style=dashed, color=red] at (0,0) (sampler){Sampler};
-		\node[draw, label=below:$f_{C_M}(s)$]  at (3,0) (map){Mapper};
-		\node[draw, label=below:$P_{Y|X}(\cdot|x)$] at (6,0) (ch) {Channe Modell};
-		\node[draw, label=below:$Q_{X|Y}(\cdot|y) \equiv D$] at (9,0) (demap) {Demapper};
+		\node[draw, label=below:$f_{\textcolor{blue}{C_M}}(s)$]  at (3,0) (map){Mapper};
+		\node[draw, label=below:$P_{Y|X}(\cdot|x)$] at (6,0) (ch) {Channel Model};
+		\node[draw, label=below:$Q_{X|Y}(\cdot|y) \equiv \textcolor{blue}{D}$] at (9,0) (demap) {Demapper};
 		\node(dst) at (11,0){};
 		
-		\draw[-latex] (dist) --  (sampler) node[midway,right] {$P_M$};	
+		\draw[-latex] (dist) --  (sampler) node[midway,right] {$\textcolor{blue}{P_M}$};	
 		\draw[-latex] (sampler) --  (map) node[midway,above] {$s$};		
 		\draw[-latex] (map) --  (ch) node[midway,above] {$x$};
 		\draw[-latex] (ch) -- (demap) node[midway,above] {$y$};	
@@ -156,13 +172,18 @@
 	\end{figure}
 	\vspace{-5mm}
 	\begin{itemize}
-	\item To find fitting sets of parameters $\{P_M, C_M, D\}$ we define a loss function,  $L(P_M, C_M, D)$, that compares the current output of the autoencoder with the desired output from the training set.
-	\item The most used algorithm is SGD, which trains any parameter, $\theta$, as
-	\begin{align*}
-	{\theta}_{new} = {\theta}_{old} + \epsilon \grad L({\theta}_{old}) %, \qquad \boldsymbol{\theta} \in \{\bold{W_k}, \bold{b_k}\}
-	\end{align*}
-	\item To compute the gradient efficiently a computational graph stores the transformations to the factors which influenced the loss function. %Automatic differentiation (pytorch cannot handle complex numbers)
+	\item To find fitting sets of parameters $\{\textcolor{blue}{P_M, C_M, D}\}$ we define a loss function,  $L(P_M, C_M, D)$, 	and update the parameters using SGD.
+	\item Geometric shaping using autoencoders is a solved problem \citep{O'Shea}, \citep{Jones}.
+	\item Probabilistic shaping is different because of the added stochastic node (sampler).
 	\end{itemize}
+	\note{
+	\begin{itemize}
+	\item To find fitting sets of parameters $\{\textcolor{blue}{P_M, C_M, D}\}$ we define a loss function,  $L(P_M, C_M, D)$, that compares the current output of the autoencoder with the desired output from the training set.
+	\item To compute the gradient efficiently a computational graph stores the transformations to the factors which influenced the loss function
+	\item This requires \textbf{every block} to be \textbf{differentiable}
+	\item Automatic differentiation (pytorch cannot handle complex numbers)
+	\end{itemize}
+	}
 \end{frame}
 
 
@@ -185,36 +206,6 @@
 	\end{figure}
 \end{frame}
 
-\begin{frame}{Loss Function}
-	The goal of probabilistic constellation shaping is to maximize the MI. To this end, defining an appropriate loss function is critical. Starting from the demodulator, the categorical cross entropy loss
-\begin{align*}
-	L(D, P_M, C_M) \triangleq \mathbb{X}(P_{X|Y}||Q_{X|Y}; D) = \mathbb{E}\left[-\log_2(Q(X|Y;D))\right] 
-\end{align*}
-is appropriate for training $D$ and $C_M$, but not $P_M$. To see why, we rewrite the MI as
-\begin{align*}
-	\mathbb{I} \left(X , Y\right) &= \mathbb{H}(X) - \mathbb{H}(X|Y)\\
-	\mathbb{I} \left(X , Y\right) &= \mathbb{H}(X) - \mathbb{X}(P_{X|Y}||Q_{X|Y}) + \mathbb{D}(P_{X|Y}||Q_{X|Y}).
-\end{align*}
-And the Loss becomes
-\begin{align*}
-L(D, P_M, C_M) &= \mathbb{H}(X) -\mathbb{I} \left(X , Y\right) + \mathbb{D}(P_{X|Y}||Q_{X|Y}).
-\end{align*}
-So, if $L$ is minimized during training, the source entropy is unwantedly minimized.
-%If we minimize the cross entropy loss we would also minimize the source entropy. A modification of this loss function is necessary.
-\end{frame}
-
-\begin{frame}{Loss Function (cont'd)}
-To avoid this effect, \citeauthor{Stark} modify the loss function as
-\begin{align*}
-	\hat{L}(D, P_M, C_M) \triangleq L(D, P_M, C_M) - \mathbb{H}(X).
-\end{align*}
-With this correction the optimization problem 
-\begin{align*}
-	\min_{D, P_M, C_M}\hat{L}(D, P_M, C_M) = \max_{D, P_M, C_M} \{ \mathbb{I} \left(X , Y\right) - \mathbb{D}(P_{X|Y}||Q_{X|Y})\}
-\end{align*}
-maximizes the MI.
-\end{frame}
-
 \begin{frame}{Gumbel-Softmax trick \cite{JANG}}
 \begin{itemize}
 \item Solves the problem of backpropagating through stochastic nodes by reparametrizing the samples to avoid breaking the dependency between the samples and the trainable parameters.
@@ -226,7 +217,245 @@ maximizes the MI.
 \end{figure}
 \end{frame}
 
-\begin{frame}{Probabilistic Constellation Shaping}
+\begin{frame}{Loss Function}
+	The goal of probabilistic constellation shaping is to maximize the MI. To this end, defining an appropriate loss function is critical. Starting from the demodulator, the categorical cross entropy loss
+\begin{align*}
+	L(D, P_M, C_M) \triangleq \mathbb{X}(P_{X|Y}||Q_{X|Y}; D) = \mathbb{E}\left[-\log_2(Q(X|Y;D))\right] 
+\end{align*}
+is appropriate for training $D$ and $C_M$, but not $P_M$.\pause To see why, we rewrite the MI as
+\begin{align*}
+	\mathbb{I} \left(X , Y\right) &= \mathbb{H}(X) - \mathbb{H}(X|Y)\\
+	\mathbb{I} \left(X , Y\right) &= \mathbb{H}(X) - \mathbb{X}(P_{X|Y}||Q_{X|Y}) + \mathbb{D}(P_{X|Y}||Q_{X|Y}).
+\end{align*}\pause
+And the Loss becomes
+\begin{align*}
+\textcolor{red}{L(D, P_M, C_M)} &= \underbrace{\mathbb{H}(X)}_{!} -\mathbb{I} \left(X , Y\right) + \mathbb{D}(P_{X|Y}||Q_{X|Y}).
+\end{align*}
+So, if $L$ is minimized during training, the source entropy is unwantedly minimized.
+%If we minimize the cross entropy loss we would also minimize the source entropy. A modification of this loss function is necessary.
+\end{frame}
+
+\begin{frame}{Loss Function (cont'd)}
+To avoid this effect, \citeauthor{Stark} modify the loss function as
+\begin{align*}
+	\textcolor{blue}{\hat{L}(D, P_M, C_M)} \triangleq \textcolor{red}{L(D, P_M, C_M)} - \mathbb{H}(X).
+\end{align*}
+With this correction the optimization problem 
+\begin{align*}
+	\min_{D, P_M, C_M}\textcolor{blue}{\hat{L}(D, P_M, C_M)} = \max_{D, P_M, C_M} \{ \mathbb{I} \left(X , Y\right) - \mathbb{D}(P_{X|Y}||Q_{X|Y})\}
+\end{align*}
+maximizes the MI.
+\note{
+\begin{itemize}
+\item Training the E2E system by minimizing L corresponds to miximizing the MI, while minimizing the ID between the true posterior distribution and the one learned by the receiver.
+\end{itemize}
+}
+\end{frame}
+
+
+\begin{frame}{Learnt Constellations}
+\begin{columns}[T,onlytextwidth]
+		\begin{column}{.5\textwidth}
+        \begin{figure}[h]
+		    \input{ressources/stark_pcs_5db}
+		    \label{subfig:stark5dB}
+		    \\
+	        \input{ressources/stark_pcs_18db}
+	        \label{subfig:stark18dB}
+		    %\caption{Learnt joint geometric and probabilistic ASK constellations for M=8.}
+		    \label{fig:starkMASK}
+		\end{figure}
+        \end{column}
+        \begin{column}{.5\textwidth}
+        \begin{figure}[h]
+		    \input{ressources/stark_gcs_5db}
+		    \label{subfig:stark5dB}
+		    \\
+	        \input{ressources/stark_gcs_18db}
+	        \label{subfig:stark18dB}
+		    %\caption{Learnt joint geometric and probabilistic ASK constellations for M=8.}
+		    \label{fig:starkMASK}
+		\end{figure}
+        \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Overall Performance}
+\begin{figure}[H]
+	\centering
+	\includegraphics[width=0.75\columnwidth]{stark_gcs.pdf}
+%    \caption{Mutual information learned by the PCS and GeoPCS for constellation size M=64 on the AWGN channel. Zoom is for the 18dB point.}
+    \label{fig:starkPerf}
+\end{figure}
+\end{frame}
+
+\begin{frame}{Second implementation \cite{Aref}}
+	Motivation:	\textit{The Gumbel-Softmax trick is complex and numerically unstable.\\}
+	Claim: The sampler does not need to be differentiable as long as we have other means of computing the gradient w.r.t $P_M$\\
+	Trainable parameters:
+	\vspace{-5mm}
+	\begin{itemize}
+		\item $P_M$, source's probability distribution learnt by the sampler.
+		\item $C_M$, spatial distribution of the constellation points learnt by the mapper.
+		\item $D$, posterior probability distribution learnt by the demapper.
+	\end{itemize}
+	
+    \begin{figure}
+		\centering
+		\includegraphics[width=0.7\columnwidth]{aref_diagram.png}
+	%	\caption{Proposed Autoencoder Architecture from \cite{Aref}}
+		\label{fig:arefAe}
+	\end{figure}
+\end{frame}
+
+\begin{frame}{Loss Function}
+	The goal is to to maximize the achievable transmission rate
+	\begin{align}
+		 \max_{D, P_M, C_M} \mathbb{R}_{PS} \left(X , Y ; D, P_M, C_M \right) = \max_{D, P_M, C_M} \left\lbrace \mathbb{H}(X) - \mathbb{X}(P_{X|Y} \Vert Q_{X|Y} ; D, P_M, C_M)\right\rbrace.
+	\end{align}
+	And the rate can be numerically approximated by
+	\begin{align}
+		\mathbb{R}_{PS} \left(X , Y\right) \approx \mathbb{R}_{PS} \left(X , Y\right)_{\text{num}} &= \dfrac{1}{B} \sum \limits_{i = 1}^{B} \underbrace{- \log_2(P(x_i)) + \log_2(Q_{X|Y}(x_i|y_i))}_{L(x_i, y_i)}
+	\end{align}
+	Next, the following approximation usually allows to adjust the trainable parameters:
+	\begin{align}
+		\pdv{\theta} \mathbb{R}_{PS} \left(X , Y ; \theta \right) \approx \pdv{\theta} \mathbb{R}_{PS} \left(X , Y\right)_{\text{num}} = \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{\theta} L(x_i, y_i).
+	\end{align}
+\end{frame}
+
+\begin{frame}{Loss Function (Cont'd)}
+	However, although this is true for the constellation locations $(\theta \in C_M)$ and the demapper parameters $(\theta \in D)$, it does not hold for the constellation probabilities $\{p_1, p_2, \dots, p_M\} = P_M$
+	\begin{align}
+	\label{eqn:mi_pdv_p}
+		\pdv{p_j} \mathbb{R}_{PS} \left(X , Y ; P_M \right) \not\approx \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{p_j} L(x_i, y_i)
+	\end{align}
+	
+	as $\{p_1, p_2, \dots, p_M\}$ changes the statistics of the training set.
+	
+	\end{frame}
+
+\begin{frame}{Loss Function (Cont'd)}	
+\begin{itemize}
+ 	\item The derivative of the rate w.r.t. $p_j$, (\ref{eqn:mi_pdv_p}), results to be
+	\begin{align}
+		\pdv{p_j} \mathbb{R}_{PS} \left(X , Y ; P_M \right) \approx \underbrace{- \log_2 (p_j)}_\text{backpropagation} - \log_2 (e) + \underbrace{\dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b)}_\text{backpropagation} + \dfrac{1}{B} \sum \limits_{(a,b)} \log_2 Q_{X|Y}(a|b)
+	\end{align}
+	
+	\item The following terms can be computed via backpropagation
+	\begin{align}
+		- \log_2 (p_j) + \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b) = \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{p_j} L(x_i, y_i)
+	\end{align}
+	while the remaining ones must be explicitly computed and added to the gradient after backpropagating.
+	\item We call this step \textit{gradient correction} and it is due to the change of statistics in the sampled batch.
+\end{itemize}
+\end{frame}
+	
+
+\begin{frame}{Learnt Constellations}
+\begin{columns}[T,onlytextwidth]
+		\begin{column}{.5\textwidth}
+        \begin{figure}[h]
+		    \input{ressources/aref_pcs_5db}
+		    \label{subfig:arefk5dB}
+		    \\
+	        \input{ressources/aref_pcs_18db}
+	        \label{subfig:aref18dB}
+		    %\caption{Learnt joint geometric and probabilistic ASK constellations for M=8.}
+		    \label{fig:arefQAM}
+		\end{figure}
+        \end{column}
+        \begin{column}{.5\textwidth}
+        \begin{figure}[h]
+		    \input{ressources/aref_gcs_5db}
+		    \label{subfig:aref5dB}
+		    \\
+	        \input{ressources/aref_gcs_18db}
+	        \label{subfig:aref18dB}
+		    %\caption{Learnt joint geometric and probabilistic ASK constellations for M=8.}
+		    \label{fig:arefMASK}
+		\end{figure}
+        \end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Overall Performance}
+	\centering
+	\includegraphics[width=0.75\columnwidth]{aref_gcs.pdf}
+	\label{fig:arefPerf}
+
+\end{frame}
+
+\begin{frame}{Conclusions}
+\begin{itemize}
+\item Both autoencoder proposals show close-to-optimal performance over the AWGN channel. \pause
+\item Common keys for success:
+	\begin{enumerate}
+	\item the choice of the loss function
+	\item and correct computation of the gradient w.r.t $P_M$
+\end{enumerate}	\pause
+\item Main differences:
+	\begin{enumerate}
+	\item \citeauthor{Stark} use the Gumbel-Softmax Trick to allow backpropagation through the sampler
+	\item \citeauthor{Aref} use a non-differentiable sampling mechanism but compute the gradient manually
+\end{enumerate}	 \pause
+\item The potential of the autoencoder approach is for training over complex channels such as optical fiber.\pause
+\item Both implementations introduce $\mathbb{H}(X)$ into the loss function. For the 2nd implementation this has the effect of adding a complementary path to the computational graph for altering the tensor's gradient w.r.t $P_M$ without backpropagating through the channel model.
+\end{itemize}
+\note{
+Over other channels we expect that they will exhibit different performance.
+}
+\end{frame}
+
+\begin{frame}{Bibliography}
+\printbibliography[heading=none]
+\end{frame}
+
+\begin{frame}
+\begin{Huge}
+Back-up Slides
+\end{Huge}
+\end{frame}
+
+\begin{frame}{Why does it makes sense to use ML for this problem?}
+\begin{itemize}
+\item Finding the constellation parameters when $p(y|x)$ is very complex or unknown can be mathematically untractable
+\item NN have the property of being universal function approximators \cite{HORNIK1989359}
+\item \citet{O'Shea} pioneered the idea of interpreting the complete communication system as an autoencoder
+% e2e optimization of transmitter and receiver
+\end{itemize}
+\begin{figure}
+\includegraphics[width=0.5\columnwidth]{ressources/oshea.png}
+\caption{Autoencoder architecture proposed by \citep{O'Shea}.}
+\end{figure}
+\note{
+\begin{itemize}
+\item An autoencoder is a type of neural network used to learn efficient codings of unlabeled data (unsupervised learning).
+\item The autoencoder learns a representation (encoding) for a set of data, typically for dimensionality reduction, by training the network to ignore insignificant data (“noise”).
+\item The chosen encoding is validated and refined by attempting to regenerate the input from the encoding.
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Autoencoders}
+\begin{itemize}
+%\item Autoencoders have been successfully implemented in fields like computer vision or data compression.
+\item Idea: transmit a particular representation of the input data so that at the output, it can be reconstructed with minimal error
+\item This representations must be robust with respect to the channel impairments (i.e. noise, fading, distortion, etc.) --- bottleneck in the autoencoder jargon
+\item The autoencoder is implemented using Feed-Forward Neural Networks (FFNN), and the parameters are learned using Stochastic Gradient Descent (SGD)
+\end{itemize}
+\vspace{-5mm}
+\begin{figure}
+\centering
+\resizebox{!}{11em}{
+\input{ressources/autoencoder}
+}
+\caption{Representation of the NN of an autoencoder.}
+\label{fig:autoencoder}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{Probabilistic Constellation Shaping (1st Imp)}
 \begin{figure}
 	\subfigure[5dB]{
 		\input{../documentation/figs/stark_pcs_5db}
@@ -240,7 +469,7 @@ maximizes the MI.
 \end{figure}
 \end{frame}
 
-\begin{frame}{Joint Probabilistic and Geometric Shaping}
+\begin{frame}{Joint Probabilistic and Geometric Shaping (1st Imp)}
 \begin{figure}[h]
 	\subfigure[SNR = 5dB]{
          \input{../documentation/figs/stark_gcs_5db}
@@ -253,123 +482,17 @@ maximizes the MI.
     \caption{Learnt joint geometric and probabilistic ASK constellations for M=8.}
     \label{fig:starkMASK}
 \end{figure}
-
 \end{frame}
 
-\begin{frame}{Overall Performance}
-\begin{figure}[H]
-	\centering
-	\includegraphics[width=0.75\columnwidth]{stark_gcs.pdf}
-%    \caption{Mutual information learned by the PCS and GeoPCS for constellation size M=64 on the AWGN channel. Zoom is for the 18dB point.}
-    \label{fig:starkPerf}
-\end{figure}
-\end{frame}
 
-\begin{frame}{Second implementation \cite{Aref}}
-	What motivates another implementation?\\
-	\textit{The Gumbel-Softmax trick is complex and numerically unstable.\\}
-	Trainable parameters:
-	\vspace{-5mm}
-	\begin{itemize}
-		\item $P_M$, source's probability distribution learnt by the sampler.
-		\item $C_M$, spatial distribution of the constellation points learnt by the mapper.
-		\item $D$, posterior probability distribution learnt by the demapper.
-	\end{itemize}
-	
-    \begin{figure}
-		\centering
-		\includegraphics[width=0.8\columnwidth]{aref_diagram.png}
-	%	\caption{Proposed Autoencoder Architecture from \cite{Aref}}
-		\label{fig:arefAe}
-	\end{figure}
-\end{frame}
 
-\begin{frame}{Loss Function}
-	The goal is again to to maximize the mutual information
-	\begin{align}
-		 \max_{D, P_M, C_M} \mathbb{I} \left(X , Y ; D, P_M, C_M \right) = \mathbb{H}(X) - \mathbb{X}(P_{X|Y} \Vert Q_{X|Y} ; D, P_M, C_M).
-	\end{align}
-	
-	Typically, through SGD we adjust the trainable parameters as:
-	\begin{align}
-		\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} \mathbb{I} \left(X , Y ; \theta_{old} \right)
-	\end{align}
-	for all trainable parameters $\theta \in P_M, C_M, D$. And the MI can be numerically approximated by
-	\begin{align}
-		\mathbb{I} \left(X , Y\right) \approx \mathbb{I} \left(X , Y\right)_{\text{num}} &= \dfrac{1}{B} \sum \limits_{i = 1}^{B} - \log_2(P(x_i)) + \log_2(Q_{X|Y}(x_i|y_i))\\
-		&= \dfrac{1}{B} \sum \limits_{i = 1}^{B} L(x_i, y_i).
-	\end{align}
-\end{frame}
-
-\begin{frame}
-	Next, the following approximation usually allows to adjust the trainable parameters:
-	\begin{align}
-		\pdv{\theta} \mathbb{I} \left(X , Y ; \theta \right) \approx \pdv{\theta} \mathbb{I} \left(X , Y\right)_{\text{num}} = \dfrac{1}{B} \sum \limits_{i = 1}^{B} L(x_i, y_i).
-	\end{align}
-	
-	However, Aref claims that although this is true for the constellation locations $(\theta \in C_M)$ and the demapper parameters $(\theta \in D)$, it does not hold for the constellation probabilities $\{p_1, p_2, \dots, p_M\} = P_M$
-	\begin{align}
-	\label{eqn:mi_pdv_p}
-		\pdv{p_j} \mathbb{I} \left(X , Y ; P_M \right) \not\approx \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{p_j} L(x_i, y_i)
-	\end{align}
-	
-	as $\{p_1, p_2, \dots, p_M\}$ changes the statistics of the training set.
-	
-	For this reason, (\ref{eqn:mi_pdv_p}) must be computed differently.
-	
-	\end{frame}
-
-\begin{frame}
-\begin{itemize}
-	\item Instead of relying on the autodifferentiation mechanism, \citeauthor{Aref} compute the gradient analytically.\\
- 	\item The derivative of the mutual information w.r.t. $p_j$, (\ref{eqn:mi_pdv_p}), results to be
-	\begin{align}
-		\pdv{p_j} \mathbb{I} \left(X , Y ; P_M \right) \approx - \log_2 (p_j) - \log_2 (e) + \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b) + \dfrac{1}{B} \sum \limits_{(a,b)} \log_2 Q_{X|Y}(a|b)
-	\end{align}
-	
-	\item The following terms can be computed via backpropagation
-	\begin{align}
-		- \log_2 (p_j) + \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b) = \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{p_j} L(x_i, y_i)
-	\end{align}
-	while the remaining ones must be explicitly computed and added to the gradient after backpropagating.
-	\item We call this step \textit{gradient correction} and it is due to the change of statistics in the sampled batch.
-\end{itemize}
-\end{frame}
-	
-
-\begin{frame}{Probabilistic Shaping}
+\begin{frame}{Probabilistic Shaping (2nd Imp)}
 	\input{../documentation/figs/aref_QAM.tex}
 
 \end{frame}
 
-\begin{frame}{Joint Geometric and Probabilistic Shaping}
+\begin{frame}{Joint Geometric and Probabilistic Shaping (2nd Imp)}
 	\input{../documentation/figs/aref_MASK.tex}
-\end{frame}
-
-\begin{frame}{Overall Performance}
-	\centering
-	\includegraphics[width=0.75\columnwidth]{aref_gcs.pdf}
-	\label{fig:arefPerf}
-
-\end{frame}
-
-\begin{frame}{Conclusions}
-\begin{itemize}
-\item Both autoencoder proposals show close-to-optimal performance over the AWGN channel.
-\item Common keys for success:
-	\begin{enumerate}
-	\item the choice of the loss function
-	\item and correct computation of the gradient w.r.t $P_M$
-\end{enumerate}	 
-\item The potential of the autoencoder approach is for training over complex channels such as optical fiber.\\
-\item Over these channels we expect that they will exhibit different performance.
-\item Both \citep{Aref} and \cite{Stark} introduce $\mathbb{H}(X)$ into the loss function. This in turn has the effect of adding a complementary path to the computational graph for computing the gradient w.r.t $P_M$ without backpropagating through the channel model.
-\item Training over other channel models is an open research direction with some challenges, such as the limited support of complex data types in the ml frameworks, but promising outcomes
-\end{itemize}
-\end{frame}
-
-\begin{frame}{Bibliography}
-\printbibliography[heading=none]
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

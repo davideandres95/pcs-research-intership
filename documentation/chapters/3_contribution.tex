@@ -18,7 +18,7 @@ As we have seen in Chapter \ref{chap:preliminaries}, the goal of probabilistic c
 
 is appropriate for training $D$ and $C_M$, but not for $P_M$. Training using (\ref{eqn:init_loss}) would have the unwanted effect of minimizing the source entropy. Consequently a modification of this loss function is necessary to ensure that the end-to-end \cgls{mi} is maximized. The following expansions will come handy
 \begin{align}
-	\mathbb{H}(X) = \mathbb{X}(P_{X|Y}||Q_{X|Y}) - \mathbb{D}(P_{X|Y}||Q_{X|Y})
+	\mathbb{H}(X) = \mathbb{X}(P_{X}||Q_{X}) - \mathbb{D}(P_{X}||Q_{X})
 \end{align}
 \begin{align}
 	\mathbb{H}(X|Y=y) = \mathbb{X}(P_{X|y}||Q_{X|y}|Y=y) - \mathbb{D}(P_{X|y}||Q_{X|y}|Y=y)
@@ -75,7 +75,7 @@ The resulting M-\cgls{ask} constellations for both only probabilistic and joint 
 		\input{figs/stark_pcs_5db}
 		\label{subfig:stark_pcs_5db}
 	}
-	\subfigure[18db]{
+	\subfigure[18dB]{
 		\input{figs/stark_pcs_18db}
 		\label{subfig:stark_pcs_18db}
 	}
@@ -117,26 +117,29 @@ In this section we break-down the autoencoder system presented by \citet{Aref}. 
 
 \subsection{Optimization of trainable parameters}
 \label{sec:parameters}
-As we have seen in Chapter \ref{chap:preliminaries}, the goal of probabilistic constellation shaping is to maximize the mutual information
+\citeauthor{Aref} start from the achievable transmission rate, $\mathbb{R}_{ps}(D)$, proposed by \citet{BoechererAR}
 \begin{align}
-	 \max_{D, P_M, C_M} \mathbb{I} \left(X , Y ; D, P_M, C_M \right) = \mathbb{H}(X) - \mathbb{X}(P_{X|Y} \Vert Q_{X|Y} ; D, P_M, C_M)
+	 \max_{D, P_M, C_M} \mathbb{R}_{ps}\left(X , Y ; D, P_M, C_M \right) =  \max_{D, P_M, C_M} \left\lbrace \mathbb{H}(X) - \mathbb{X}(P_{X|Y} \Vert Q_{X|Y} ; D, P_M, C_M) \right\rbrace
 \end{align}
 
-where the entropy is maximized when the symbols' probabilities follow a \cgls{mb} distribution; and the cross-equivocation is minimum when $Q_{X|Y} = P_{X|Y}$.
-
+where the entropy is maximized when the symbols' probabilities follow a \cgls{mb} distribution; and the cross-equivocation is minimum when $Q_{X|Y} = P_{X|Y}$. Note that when the cross-equivocation is minimum
+\begin{align}
+	\mathbb{R}_{ps}|_{Q_{X|Y} = P_{X|Y}} = \mathbb{H}(X) - \mathbb{H}(X|Y) = \mathbb{I}(X;Y)
+\end{align}
+the achievable transmission rates becomes the channel's \cgls{mi}.
 Typically, the gradient descent (or ascent, as we intent to maximize) allows us to solve the optimization problem by adjusting the trainable parameters as:
 \begin{align}
-	\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} \mathbb{I} \left(X , Y ; \theta_{old} \right)
+	\theta_{new} = \theta_{old} + \epsilon \pdv{\theta_{old}} \mathbb{R}_{ps}\left(X , Y ; \theta_{old} \right)
 \end{align}
 for all trainable parameters $\theta \in P_M, C_M, D$. And the \cgls{mi} can be numerically approximated by
 \begin{align}
-	\mathbb{I} \left(X , Y\right) \approx \mathbb{I} \left(X , Y\right)_{\text{num}} &= \dfrac{1}{B} \sum \limits_{i = 1}^{B} - \log_2(P(x_i)) + \log_2(Q_{X|Y}(x_i|y_i))\\
+	\mathbb{R}_{ps} \left(X , Y\right) \approx \mathbb{R}_{ps} \left(X , Y\right)_{\text{num}} &= \dfrac{1}{B} \sum \limits_{i = 1}^{B} - \log_2(P(x_i)) + \log_2(Q_{X|Y}(x_i|y_i))\\
 	&= \dfrac{1}{B} \sum \limits_{i = 1}^{B} L(x_i, y_i).
 \end{align}
 
 Next, the following approximation usually allows to adjust the trainable parameters:
 \begin{align}
-	\pdv{\theta} \mathbb{I} \left(X , Y ; \theta \right) \approx \pdv{\theta} \mathbb{I} \left(X , Y\right)_{\text{num}} = \dfrac{1}{B} \sum \limits_{i = 1}^{B} L(x_i, y_i).
+	\pdv{\theta} \mathbb{R}_{ps} \left(X , Y ; \theta \right) \approx \pdv{\theta} \mathbb{R}_{ps} \left(X , Y;\theta  \right)_{\text{num}} = \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{\theta} L(x_i, y_i).
 \end{align}
 
 However, Aref claims that although this is true for the constellation locations $(\theta \in C_M)$ and the demapper parameters $(\theta \in D)$, it does not hold for the constellation probabilities $\{p_1, p_2, \dots, p_M\} = P_M$
@@ -187,18 +190,15 @@ On the other hand, the derivative of the entropy w.r.t. $p_j$ is
 \label{eqn:H_term_1}
 	\pdv{p_j} \mathbb{H}(X) = \pdv{p_j} \sum \limits_{i = 1}^{B} - p_i \log_2(p_i) = - \log_2 (p_j) - log_2 (e).
 \end{align}
-
 Now, combining (\ref{eqn:CE_term_1}), (\ref{eqn:CE_term_2}), and (\ref{eqn:H_term_1}) the derivative of the mutual information w.r.t. $p_j$, (\ref{eqn:mi_pdv_p}), can be computed as
 \begin{align}
-	\pdv{p_j} \mathbb{I} \left(X , Y ; P_M \right) \approx - \log_2 (p_j) - \log_2 (e) + \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b) + \dfrac{1}{B} \sum \limits_{(a,b)} \log_2 Q_{X|Y}(a|b)
+	\pdv{p_j} \mathbb{R}_{ps} \left(X , Y ; P_M \right) \approx - \log_2 (p_j) - \log_2 (e) + \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b) + \dfrac{1}{B} \sum \limits_{(a,b)} \log_2 Q_{X|Y}(a|b)
 \end{align}
-
 Aref now indicates that the following terms can be computed via backpropagation
 \begin{align}
 	- \log_2 (p_j) + \dfrac{1}{Bp_j}\sum \limits_{b \text{ if } x=j} \log_2 Q_{X|Y}(j|b) = \dfrac{1}{B} \sum \limits_{i = 1}^{B} \pdv{p_j} L(x_i, y_i)
 \end{align}
 while the remaining ones must be explicitly computed and added to the gradient after backpropagating. We call this step \textit{gradient correction} and it is due to the change of statistics in the sampled batch.
-
 \subsection{Autoencoder Architecture}
 \begin{figure}[H]
 	\centering
